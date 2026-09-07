@@ -96,9 +96,10 @@ backend/
 │   └── ErrorHandlingMiddleware.cs   Global try/catch — turns any AppException (or unexpected
 │                                     exception) into a consistent JSON error response
 ├── Services/
-│   └── TokenService.cs           Builds and signs the JWT issued on login/register
-├── Repositories/             Reserved for the data-access layer for Book/BorrowRecord
-│                              (not yet implemented — see "What's built so far" below)
+│   ├── TokenService.cs           Builds and signs the JWT issued on login/register
+│   └── BorrowService.cs          Borrow/return logic — transaction + row-locking, see
+│                                   docs/backend-architecture.md §4a
+├── Repositories/             Data-access layer for Book/BorrowRecord
 ├── Migrations/                EF Core's generated migration history (do not hand-edit)
 └── appsettings*.json          Non-secret config only (logging levels etc.) — see "Secrets" below
 ```
@@ -181,6 +182,9 @@ On failure, `success` is `false`, `data` is `null`, and `error` holds `{ code, m
 | POST | `/api/borrow`, `/api/borrow/return` | Yes | Borrow / return a book (concurrency-safe, see `docs/backend-architecture.md` §4a) |
 | GET | `/api/borrow/my-history` | Yes | The caller's own borrow history |
 | GET | `/api/borrow/overdue`, `/api/borrow/all`, `/api/borrow/history/{userId}` | Librarian only | System-wide borrow reporting |
+| GET | `/api/members`, `/api/members/{id}` | Librarian only | List/view members |
+| PUT | `/api/members/{id}` | Librarian only | Edit a member's details |
+| PATCH | `/api/members/{id}/deactivate`, `/api/members/{id}/activate` | Librarian only | Block/restore a member's ability to log in and borrow — no delete endpoint, history is preserved |
 
 ## Roles
 
@@ -188,14 +192,5 @@ Every user has a single `Role` on `AspNetUsers`: `"Librarian"` or `"Member"`. It
 claim in the JWT, so `[Authorize(Roles = "Librarian")]` on any future controller action works
 without any extra lookup.
 
-## What's built so far
-
-✅ Project scaffolding, database, EF Core migrations, error-handling architecture, full
-authentication flow (register/login/logout/me) with cookie-based JWT, book catalog CRUD, and
-concurrency-safe borrow/return (verified under real concurrent requests — see
-`docs/backend-architecture.md` §4a).
-
-❌ Not yet implemented: `/api/members` for Librarian member management (list/edit/deactivate).
-Full planned endpoint list and build order: `docs/backend-architecture.md`.
-
-See `docs/database-design.md` for the full schema, ER diagram, and design rationale.
+See `docs/backend-architecture.md` for the full endpoint list and build order, and
+`docs/database-design.md` for the schema, ER diagram, and design rationale.

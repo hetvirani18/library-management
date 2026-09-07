@@ -28,7 +28,8 @@ backend/
 ├── Controllers/
 │   ├── AuthController.cs                   # register, login, logout, me
 │   ├── BooksController.cs                  # catalog CRUD
-│   └── BorrowController.cs                 # borrow, return, overdue report, history
+│   ├── BorrowController.cs                 # borrow, return, overdue report, history
+│   └── MembersController.cs                # Librarian: list/edit/deactivate/activate members
 ├── Models/                                 # EF Core entities — define the DB schema
 │   ├── ApplicationUser.cs                  # extends IdentityUser: FullName, MembershipDate,
 │   │                                        # IsActive, Role
@@ -37,7 +38,8 @@ backend/
 ├── DTOs/
 │   ├── AuthDtos.cs                         # RegisterRequest, LoginRequest, AuthResponse
 │   ├── BookDtos.cs                         # CreateBookRequest, UpdateBookRequest, BookResponse
-│   └── BorrowDtos.cs                       # BorrowBookRequest, ReturnBookRequest, BorrowRecordResponse
+│   ├── BorrowDtos.cs                       # BorrowBookRequest, ReturnBookRequest, BorrowRecordResponse
+│   └── MemberDtos.cs                       # UpdateMemberRequest, MemberResponse
 ├── Data/
 │   ├── ApplicationDbContext.cs             # DbSets + relationship configuration
 │   └── DbSeeder.cs                         # seeds the default librarian account on startup
@@ -103,16 +105,22 @@ is put together"). Every response uses the `ApiResponse<T>` envelope.
 | GET | `/all` | Librarian only | Every borrow record, system-wide |
 | GET | `/history/:userId` | Librarian only | Any specific member's borrow history |
 
-### 3.4 Members — folded into `/api/auth` + a future `/api/members` — ❌ planned
+### 3.4 Members — `/api/members` — ✅ built
 
-The Librarian-facing "list/manage members" screen needs endpoints beyond what `AuthController`
-covers today (`register`/`login` only manage the *caller's own* account). Planned:
+The Librarian-facing "list/manage members" screen — endpoints beyond what `AuthController` covers
+(`register`/`login` only manage the *caller's own* account). Deliberately **no delete endpoint**:
+members are deactivated, never removed — same "never destroy historical data" reasoning as the
+`Books` delete-block (§3.2), and it preserves their borrow history intact. A deactivated member is
+blocked from logging in (`Errors.AccountDeactivated`) and from borrowing (`BorrowService` checks
+`IsActive`), but can still return books they already have out.
 
 | Method | Path | Access | Purpose |
 |---|---|---|---|
-| GET | `/api/members` | Librarian only | List every member |
-| PUT | `/api/members/:id` | Librarian only | Edit a member's details / toggle `IsActive` |
-| DELETE | `/api/members/:id` | Librarian only | Remove a member — blocked if they have active borrow records |
+| GET | `/api/members` | Librarian only | List every member (`Role == "Member"`) |
+| GET | `/api/members/:id` | Librarian only | Single member detail |
+| PUT | `/api/members/:id` | Librarian only | Edit a member's `FullName`/`Email` |
+| PATCH | `/api/members/:id/deactivate` | Librarian only | Sets `IsActive = false` |
+| PATCH | `/api/members/:id/activate` | Librarian only | Sets `IsActive = true` |
 
 ---
 
@@ -238,5 +246,5 @@ endpoint's success response.
 4. ~~Repositories~~ — `IBookRepository`/`BookRepository`, `IBorrowRecordRepository`/`BorrowRecordRepository` — **done**
 5. ~~Books~~ — `BooksController` (§3.2), Librarian-only writes via `[Authorize(Roles = "Librarian")]` — **done**
 6. ~~Borrowing~~ — `BorrowController` (§3.3) + `BorrowService`: borrow/return with transaction + row-locking (§4a), overdue report, history — **done**
-7. **Members** — `/api/members` (§3.4) for Librarian member management
-8. **Frontend** — Angular app in `frontend/`, wired against everything above
+7. ~~Members~~ — `/api/members` (§3.4) for Librarian member management — **done**
+8. **Frontend** — Angular app in `frontend/`, wired against everything above — backend v1 is functionally complete

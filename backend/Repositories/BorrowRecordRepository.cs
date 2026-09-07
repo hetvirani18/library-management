@@ -40,6 +40,13 @@ public class BorrowRecordRepository : IBorrowRecordRepository
             .OrderByDescending(record => record.BorrowedAt)
             .ToListAsync();
 
+    public Task<int> CountActiveAsync() =>
+        _context.BorrowRecords.AsNoTracking().CountAsync(record => record.ReturnedAt == null);
+
+    public Task<int> CountOverdueAsync() =>
+        _context.BorrowRecords.AsNoTracking()
+            .CountAsync(record => record.ReturnedAt == null && record.DueDate < DateTime.UtcNow);
+
     public async Task AddAsync(BorrowRecord record)
     {
         _context.BorrowRecords.Add(record);

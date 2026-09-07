@@ -29,17 +29,19 @@ backend/
 │   ├── AuthController.cs                   # register, login, logout, me
 │   ├── BooksController.cs                  # catalog CRUD
 │   ├── BorrowController.cs                 # borrow, return, overdue report, history
-│   └── MembersController.cs                # Librarian: list/edit/deactivate/activate members
+│   ├── MembersController.cs                # Librarian: list/add/edit/deactivate/activate members
+│   └── DashboardController.cs              # Librarian: landing-page summary stats
 ├── Models/                                 # EF Core entities — define the DB schema
 │   ├── ApplicationUser.cs                  # extends IdentityUser: FullName, MembershipDate,
 │   │                                        # IsActive, Role
 │   ├── Book.cs
 │   └── BorrowRecord.cs
 ├── DTOs/
-│   ├── AuthDtos.cs                         # RegisterRequest, LoginRequest, AuthResponse
+│   ├── AuthDtos.cs                         # RegisterRequest, LoginRequest, UpdateProfileRequest, AuthResponse
 │   ├── BookDtos.cs                         # CreateBookRequest, UpdateBookRequest, BookResponse
 │   ├── BorrowDtos.cs                       # BorrowBookRequest, ReturnBookRequest, BorrowRecordResponse
-│   └── MemberDtos.cs                       # UpdateMemberRequest, MemberResponse
+│   ├── MemberDtos.cs                       # CreateMemberRequest, UpdateMemberRequest, MemberResponse
+│   └── DashboardDtos.cs                    # DashboardStatsResponse
 ├── Data/
 │   ├── ApplicationDbContext.cs             # DbSets + relationship configuration
 │   └── DbSeeder.cs                         # seeds the default librarian account on startup
@@ -81,6 +83,7 @@ is put together"). Every response uses the `ApiResponse<T>` envelope.
 | POST | `/login` | public | Verify credentials → sets `access_token` cookie |
 | POST | `/logout` | public | Clears the `access_token` cookie |
 | GET | `/me` | authed | Returns the logged-in user's own info, read from the JWT's `sub` claim |
+| PUT | `/me` | authed | Update the caller's own `FullName`/`Email` |
 
 ### 3.2 Books — `/api/books` — ✅ built
 
@@ -90,17 +93,23 @@ is put together"). Every response uses the `ApiResponse<T>` envelope.
 | GET | `/:id` | authed | Single book detail |
 | GET | `/available` | authed | Books with `AvailableCopies > 0` |
 | GET | `/genre/:genre` | authed | Filter by genre |
+| GET | `/search?q=` | authed | Case-insensitive partial match against `Title` OR `AuthorName` |
 | POST | `/` | Librarian only | Add a book |
 | PUT | `/:id` | Librarian only | Edit a book's details |
 | DELETE | `/:id` | Librarian only | Remove a book — blocked (`BookHasActiveBorrows`) if it has any borrow history, active or returned (the DB FK is RESTRICT, not just an app-level check) |
 
 ### 3.3 Borrowing — `/api/borrow` — ✅ built
 
+**Librarian-mediated, not self-service** — matches how a physical library actually works: a
+Librarian assigns a book to a member (like checking it out at the desk), a member cannot borrow or
+return a book themselves. A member's role in this flow is read-only: browse the catalog, then see
+what's currently assigned to them and their past history.
+
 | Method | Path | Access | Purpose |
 |---|---|---|---|
-| POST | `/` | authed | Borrow a book (bookId) — the member is always the caller (from the JWT), never a body param, so a Member can't borrow on someone else's behalf |
-| POST | `/return` | authed | Return a book (bookId) — matches the caller's own active borrow record |
-| GET | `/my-history` | authed | The caller's own borrow history (past + active) |
+| POST | `/` | Librarian only | Assign a book to a member — body: `{ bookId, memberId }`. Validates the target `memberId` actually belongs to a `Member` (not another `Librarian`) via `Errors.MemberNotFound` |
+| POST | `/return` | Librarian only | Return a book on a member's behalf — body: `{ bookId, memberId }` |
+| GET | `/my-history` | authed | The caller's own borrow history (past + active) — the one self-service action left for a Member |
 | GET | `/overdue` | Librarian only | Every overdue record, system-wide |
 | GET | `/all` | Librarian only | Every borrow record, system-wide |
 | GET | `/history/:userId` | Librarian only | Any specific member's borrow history |
@@ -118,9 +127,18 @@ blocked from logging in (`Errors.AccountDeactivated`) and from borrowing (`Borro
 |---|---|---|---|
 | GET | `/api/members` | Librarian only | List every member (`Role == "Member"`) |
 | GET | `/api/members/:id` | Librarian only | Single member detail |
+| POST | `/api/members` | Librarian only | Add a member manually (account + password set by the Librarian, e.g. for someone without self-service access) |
 | PUT | `/api/members/:id` | Librarian only | Edit a member's `FullName`/`Email` |
 | PATCH | `/api/members/:id/deactivate` | Librarian only | Sets `IsActive = false` |
 | PATCH | `/api/members/:id/activate` | Librarian only | Sets `IsActive = true` |
+
+### 3.5 Dashboard — `/api/dashboard` — ✅ built
+
+A landing-page summary for a Librarian on login.
+
+| Method | Path | Access | Purpose |
+|---|---|---|---|
+| GET | `/stats` | Librarian only | `{ totalBooks, totalMembers, currentlyBorrowed, overdueCount }` — four `COUNT` queries, cross-checked against raw SQL during testing |
 
 ---
 
@@ -192,10 +210,13 @@ on `BorrowRecords` (`SET "ReturnedAt" = now() WHERE "RecordId" = @id AND "Return
 two concurrent "return" calls for the same borrow can't both succeed and double-increment
 `AvailableCopies`.
 
-Verified under real concurrency, not just reasoned about: two members were registered, a book was
-seeded with `TotalCopies = 1`, and two genuinely parallel `POST /api/borrow` requests were fired
-at once. One received `200` and the borrow record; the other received `409 NoAvailableCopies`; the
-book's `AvailableCopies` landed at exactly `0`, never `-1`.
+Verified under real concurrency, not just reasoned about, in both borrowing models this project
+went through: first with two members racing to self-borrow, and again after the model changed to
+Librarian-assigned (§3.3) with two genuinely parallel `POST /api/borrow` requests — the Librarian
+assigning the same 1-copy book to two different members at once. Both times: one request received
+`200` and the borrow record, the other received `409 NoAvailableCopies`, and the book's
+`AvailableCopies` landed at exactly `0`, never `-1` — confirming the row-locking is agnostic to
+*who* triggers the assignment, exactly as intended.
 
 ---
 

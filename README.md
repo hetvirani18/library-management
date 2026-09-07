@@ -177,14 +177,17 @@ On failure, `success` is `false`, `data` is `null`, and `error` holds `{ code, m
 | POST | `/api/auth/login` | No | Log in — sets the `access_token` cookie |
 | POST | `/api/auth/logout` | No | Clears the `access_token` cookie |
 | GET | `/api/auth/me` | Yes | Returns the currently logged-in user's info |
-| GET | `/api/books`, `/api/books/{id}`, `/api/books/available`, `/api/books/genre/{genre}` | Yes | Browse the catalog |
+| PUT | `/api/auth/me` | Yes | Update the caller's own name/email |
+| GET | `/api/books`, `/api/books/{id}`, `/api/books/available`, `/api/books/genre/{genre}`, `/api/books/search?q=` | Yes | Browse/search the catalog |
 | POST/PUT/DELETE | `/api/books`, `/api/books/{id}` | Librarian only | Manage the catalog |
-| POST | `/api/borrow`, `/api/borrow/return` | Yes | Borrow / return a book (concurrency-safe, see `docs/backend-architecture.md` §4a) |
-| GET | `/api/borrow/my-history` | Yes | The caller's own borrow history |
+| POST | `/api/borrow`, `/api/borrow/return` | Librarian only | Assign / return a book for a member (`{ bookId, memberId }`, concurrency-safe — see `docs/backend-architecture.md` §4a) |
+| GET | `/api/borrow/my-history` | Yes | The caller's own borrow history (the one self-service action a Member has) |
 | GET | `/api/borrow/overdue`, `/api/borrow/all`, `/api/borrow/history/{userId}` | Librarian only | System-wide borrow reporting |
 | GET | `/api/members`, `/api/members/{id}` | Librarian only | List/view members |
+| POST | `/api/members` | Librarian only | Add a member manually |
 | PUT | `/api/members/{id}` | Librarian only | Edit a member's details |
 | PATCH | `/api/members/{id}/deactivate`, `/api/members/{id}/activate` | Librarian only | Block/restore a member's ability to log in and borrow — no delete endpoint, history is preserved |
+| GET | `/api/dashboard/stats` | Librarian only | Summary counts for a landing page |
 
 ## Roles
 

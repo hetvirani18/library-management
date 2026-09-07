@@ -6,12 +6,18 @@ public class BorrowBookRequest
 {
     [Required]
     public int BookId { get; set; }
+
+    [Required]
+    public string MemberId { get; set; } = string.Empty;
 }
 
 public class ReturnBookRequest
 {
     [Required]
     public int BookId { get; set; }
+
+    [Required]
+    public string MemberId { get; set; } = string.Empty;
 }
 
 public class BorrowRecordResponse

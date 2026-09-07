@@ -1,4 +1,5 @@
 using LibraryWebApi.Common;
+using LibraryWebApi.Controllers;
 using LibraryWebApi.Data;
 using LibraryWebApi.Models;
 using LibraryWebApi.Repositories;
@@ -32,6 +33,11 @@ public class BorrowService
         var book = await _bookRepository.GetByIdAsync(bookId) ?? throw Errors.BookNotFound;
 
         var user = await _userManager.FindByIdAsync(userId) ?? throw Errors.MemberNotFound;
+        if (user.Role != AuthController.MemberRole)
+        {
+            throw Errors.MemberNotFound;
+        }
+
         if (!user.IsActive)
         {
             throw Errors.AccountDeactivated;

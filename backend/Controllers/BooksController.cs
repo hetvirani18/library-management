@@ -48,6 +48,18 @@ public class BooksController : ControllerBase
         return Ok(ApiResponse<List<BookResponse>>.SuccessResponse(books.Select(ToResponse).ToList()));
     }
 
+    [HttpGet("search")]
+    public async Task<IActionResult> Search([FromQuery] string q)
+    {
+        if (string.IsNullOrWhiteSpace(q))
+        {
+            throw Errors.ValidationFailed;
+        }
+
+        var books = await _bookRepository.SearchAsync(q.Trim());
+        return Ok(ApiResponse<List<BookResponse>>.SuccessResponse(books.Select(ToResponse).ToList()));
+    }
+
     [HttpPost]
     [Authorize(Roles = AuthController.LibrarianRole)]
     public async Task<IActionResult> Create(CreateBookRequest request)

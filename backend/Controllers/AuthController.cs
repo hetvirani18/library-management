@@ -115,6 +115,38 @@ public class AuthController : ControllerBase
         return Ok(ApiResponse<AuthResponse>.SuccessResponse(ToAuthResponse(user), "Current user fetched"));
     }
 
+    [HttpPut("me")]
+    [Authorize]
+    public async Task<IActionResult> UpdateMe(UpdateProfileRequest request)
+    {
+        if (!ModelState.IsValid)
+        {
+            throw Errors.ValidationFailed;
+        }
+
+        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                     ?? User.FindFirst("sub")?.Value;
+
+        var user = userId is null ? null : await _userManager.FindByIdAsync(userId);
+        if (user is null)
+        {
+            throw Errors.InvalidAuthToken;
+        }
+
+        var existingWithEmail = await _userManager.FindByEmailAsync(request.Email);
+        if (existingWithEmail is not null && existingWithEmail.Id != user.Id)
+        {
+            throw Errors.EmailAlreadyExists;
+        }
+
+        user.FullName = request.FullName.Trim();
+        await _userManager.SetEmailAsync(user, request.Email);
+        await _userManager.SetUserNameAsync(user, request.Email);
+        await _userManager.UpdateAsync(user);
+
+        return Ok(ApiResponse<AuthResponse>.SuccessResponse(ToAuthResponse(user), "Profile updated successfully"));
+    }
+
     private void SetAccessTokenCookie(ApplicationUser user)
     {
         var token = _tokenService.CreateToken(user);

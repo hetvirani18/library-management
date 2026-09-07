@@ -8,6 +8,8 @@ public interface IBorrowRecordRepository
     Task<List<BorrowRecord>> GetOverdueAsync();
     Task<List<BorrowRecord>> GetAllAsync();
     Task<List<BorrowRecord>> GetMemberHistoryAsync(string userId);
+    Task<int> CountActiveAsync();
+    Task<int> CountOverdueAsync();
     Task AddAsync(BorrowRecord record);
     Task<bool> TryMarkReturnedAsync(int recordId);
 }

@@ -31,6 +31,18 @@ public class BookRepository : IBookRepository
             .OrderBy(book => book.Title)
             .ToListAsync();
 
+    public Task<List<Book>> SearchAsync(string query)
+    {
+        var pattern = $"%{query}%";
+
+        return _context.Books.AsNoTracking()
+            .Where(book => EF.Functions.ILike(book.Title, pattern) || EF.Functions.ILike(book.AuthorName, pattern))
+            .OrderBy(book => book.Title)
+            .ToListAsync();
+    }
+
+    public Task<int> CountAsync() => _context.Books.CountAsync();
+
     public async Task AddAsync(Book book)
     {
         _context.Books.Add(book);

@@ -24,6 +24,7 @@ public class BorrowController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = AuthController.LibrarianRole)]
     public async Task<IActionResult> Borrow(BorrowBookRequest request)
     {
         if (!ModelState.IsValid)
@@ -31,11 +32,12 @@ public class BorrowController : ControllerBase
             throw Errors.ValidationFailed;
         }
 
-        var record = await _borrowService.BorrowBookAsync(request.BookId, GetUserId());
-        return Ok(ApiResponse<BorrowRecordResponse>.SuccessResponse(ToResponse(record), "Book borrowed successfully"));
+        var record = await _borrowService.BorrowBookAsync(request.BookId, request.MemberId);
+        return Ok(ApiResponse<BorrowRecordResponse>.SuccessResponse(ToResponse(record), "Book assigned to member successfully"));
     }
 
     [HttpPost("return")]
+    [Authorize(Roles = AuthController.LibrarianRole)]
     public async Task<IActionResult> Return(ReturnBookRequest request)
     {
         if (!ModelState.IsValid)
@@ -43,7 +45,7 @@ public class BorrowController : ControllerBase
             throw Errors.ValidationFailed;
         }
 
-        var record = await _borrowService.ReturnBookAsync(request.BookId, GetUserId());
+        var record = await _borrowService.ReturnBookAsync(request.BookId, request.MemberId);
         return Ok(ApiResponse<BorrowRecordResponse>.SuccessResponse(ToResponse(record), "Book returned successfully"));
     }
 

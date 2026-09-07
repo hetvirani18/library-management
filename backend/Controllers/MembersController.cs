@@ -38,6 +38,42 @@ public class MembersController : ControllerBase
         return Ok(ApiResponse<MemberResponse>.SuccessResponse(ToResponse(member)));
     }
 
+    [HttpPost]
+    public async Task<IActionResult> Create(CreateMemberRequest request)
+    {
+        if (!ModelState.IsValid)
+        {
+            throw Errors.ValidationFailed;
+        }
+
+        var existingUser = await _userManager.FindByEmailAsync(request.Email);
+        if (existingUser is not null)
+        {
+            throw Errors.EmailAlreadyExists;
+        }
+
+        var member = new ApplicationUser
+        {
+            UserName = request.Email,
+            Email = request.Email,
+            FullName = request.FullName.Trim(),
+            MembershipDate = DateTime.UtcNow,
+            IsActive = true,
+            Role = AuthController.MemberRole
+        };
+
+        var result = await _userManager.CreateAsync(member, request.Password);
+        if (!result.Succeeded)
+        {
+            throw new AppException(
+                string.Join(" ", result.Errors.Select(e => e.Description)),
+                Errors.ValidationFailed.Code,
+                Errors.ValidationFailed.StatusCode);
+        }
+
+        return Ok(ApiResponse<MemberResponse>.SuccessResponse(ToResponse(member), "Member added successfully"));
+    }
+
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(string id, UpdateMemberRequest request)
     {

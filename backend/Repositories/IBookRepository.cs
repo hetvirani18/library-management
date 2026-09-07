@@ -8,6 +8,8 @@ public interface IBookRepository
     Task<List<Book>> GetAllAsync();
     Task<List<Book>> GetAvailableAsync();
     Task<List<Book>> GetByGenreAsync(string genre);
+    Task<List<Book>> SearchAsync(string query);
+    Task<int> CountAsync();
     Task AddAsync(Book book);
     Task UpdateAsync(Book book);
     Task<bool> DeleteAsync(int bookId);

@@ -2,6 +2,7 @@ using LibraryWebApi.Common;
 using LibraryWebApi.DTOs;
 using LibraryWebApi.Models;
 using LibraryWebApi.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
@@ -16,6 +17,7 @@ public class AuthController : ControllerBase
 
     public const string LibrarianRole = "Librarian";
     public const string MemberRole = "Member";
+    private const string AccessTokenCookieName = "access_token";
 
     public AuthController(UserManager<ApplicationUser> userManager, TokenService tokenService)
     {
@@ -43,7 +45,8 @@ public class AuthController : ControllerBase
             Email = request.Email,
             FullName = request.FullName,
             MembershipDate = DateTime.UtcNow,
-            IsActive = true
+            IsActive = true,
+            Role = MemberRole
         };
 
         var result = await _userManager.CreateAsync(user, request.Password);
@@ -55,10 +58,8 @@ public class AuthController : ControllerBase
                 Errors.ValidationFailed.StatusCode);
         }
 
-        await _userManager.AddToRoleAsync(user, MemberRole);
-
-        var response = await BuildAuthResponseAsync(user);
-        return Ok(ApiResponse<AuthResponse>.SuccessResponse(response, "Registered successfully"));
+        SetAccessTokenCookie(user);
+        return Ok(ApiResponse<AuthResponse>.SuccessResponse(ToAuthResponse(user), "Registered successfully"));
     }
 
     [HttpPost("login")]
@@ -80,22 +81,62 @@ public class AuthController : ControllerBase
             throw Errors.AccountDeactivated;
         }
 
-        var response = await BuildAuthResponseAsync(user);
-        return Ok(ApiResponse<AuthResponse>.SuccessResponse(response, "Logged in successfully"));
+        SetAccessTokenCookie(user);
+        return Ok(ApiResponse<AuthResponse>.SuccessResponse(ToAuthResponse(user), "Logged in successfully"));
     }
 
-    private async Task<AuthResponse> BuildAuthResponseAsync(ApplicationUser user)
+    [HttpPost("logout")]
+    public IActionResult Logout()
     {
-        var roles = await _userManager.GetRolesAsync(user);
-        var token = _tokenService.CreateToken(user, roles);
+        Response.Cookies.Delete(AccessTokenCookieName, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = Request.IsHttps,
+            SameSite = SameSiteMode.Lax,
+            Path = "/"
+        });
 
+        return Ok(ApiResponse<object?>.SuccessResponse(null, "Logged out successfully"));
+    }
+
+    [HttpGet("me")]
+    [Authorize]
+    public async Task<IActionResult> Me()
+    {
+        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                      ?? User.FindFirst("sub")?.Value;
+
+        var user = userId is null ? null : await _userManager.FindByIdAsync(userId);
+        if (user is null)
+        {
+            throw Errors.InvalidAuthToken;
+        }
+
+        return Ok(ApiResponse<AuthResponse>.SuccessResponse(ToAuthResponse(user), "Current user fetched"));
+    }
+
+    private void SetAccessTokenCookie(ApplicationUser user)
+    {
+        var token = _tokenService.CreateToken(user);
+
+        Response.Cookies.Append(AccessTokenCookieName, token, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = Request.IsHttps,
+            SameSite = SameSiteMode.Lax,
+            Expires = DateTimeOffset.UtcNow.AddHours(8),
+            Path = "/"
+        });
+    }
+
+    private static AuthResponse ToAuthResponse(ApplicationUser user)
+    {
         return new AuthResponse
         {
-            Token = token,
             UserId = user.Id,
             FullName = user.FullName,
             Email = user.Email!,
-            Roles = roles.ToList()
+            Role = user.Role
         };
     }
 }

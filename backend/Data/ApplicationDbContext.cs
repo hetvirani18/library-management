@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LibraryWebApi.Data;
 
-public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
+public class ApplicationDbContext : IdentityUserContext<ApplicationUser>
 {
     public DbSet<Book> Books { get; set; } = null!;
     public DbSet<BorrowRecord> BorrowRecords { get; set; } = null!;

@@ -8,18 +8,12 @@ public static class DbSeeder
 {
     public static async Task SeedAsync(IServiceProvider services)
     {
-        var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
         var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
+        var configuration = services.GetRequiredService<IConfiguration>();
 
-        foreach (var roleName in new[] { AuthController.LibrarianRole, AuthController.MemberRole })
-        {
-            if (!await roleManager.RoleExistsAsync(roleName))
-            {
-                await roleManager.CreateAsync(new IdentityRole(roleName));
-            }
-        }
+        var librarianEmail = configuration["Seed:LibrarianEmail"] ?? "librarian@library.local";
+        var librarianPassword = configuration["Seed:LibrarianPassword"] ?? "Librarian@123";
 
-        const string librarianEmail = "librarian@library.local";
         var librarian = await userManager.FindByEmailAsync(librarianEmail);
         if (librarian is null)
         {
@@ -30,11 +24,11 @@ public static class DbSeeder
                 FullName = "Default Librarian",
                 MembershipDate = DateTime.UtcNow,
                 IsActive = true,
-                EmailConfirmed = true
+                EmailConfirmed = true,
+                Role = AuthController.LibrarianRole
             };
 
-            await userManager.CreateAsync(librarian, "Librarian@123");
-            await userManager.AddToRoleAsync(librarian, AuthController.LibrarianRole);
+            await userManager.CreateAsync(librarian, librarianPassword);
         }
     }
 }

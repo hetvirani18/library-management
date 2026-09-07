@@ -1,7 +1,7 @@
 import {
-  APP_INITIALIZER,
   ApplicationConfig,
   inject,
+  provideAppInitializer,
   provideBrowserGlobalErrorListeners,
 } from '@angular/core';
 import { provideHttpClient, withFetch } from '@angular/common/http';
@@ -10,11 +10,6 @@ import { QueryClient, provideTanStackQuery } from '@tanstack/angular-query-exper
 
 import { routes } from './app.routes';
 import { AuthService } from './core/auth/auth.service';
-
-function initializeAuth() {
-  const auth = inject(AuthService);
-  return () => auth.bootstrap();
-}
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -32,10 +27,6 @@ export const appConfig: ApplicationConfig = {
         },
       }),
     ),
-    {
-      provide: APP_INITIALIZER,
-      useFactory: initializeAuth,
-      multi: true,
-    },
+    provideAppInitializer(() => inject(AuthService).bootstrap()),
   ],
 };

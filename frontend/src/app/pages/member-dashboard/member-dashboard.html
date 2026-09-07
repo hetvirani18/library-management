@@ -1,0 +1,25 @@
+<div class="min-h-screen bg-background text-foreground">
+  <app-dashboard-header />
+
+  <main class="mx-auto max-w-6xl px-6 py-12">
+    @if (auth.currentUser(); as user) {
+      <h1 class="font-serif text-3xl font-medium italic tracking-tight">Welcome, {{ user.fullName }}</h1>
+      <p class="mt-2 text-muted-foreground">Your books, at a glance.</p>
+    }
+
+    <div class="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2">
+      <div class="rounded-2xl border border-border bg-card p-7">
+        <h2 class="text-base font-semibold">Browse the catalog</h2>
+        <p class="mt-2 text-sm leading-relaxed text-muted-foreground">
+          Search books by title, author, or genre. Coming next.
+        </p>
+      </div>
+      <div class="rounded-2xl border border-border bg-card p-7">
+        <h2 class="text-base font-semibold">My borrowed books</h2>
+        <p class="mt-2 text-sm leading-relaxed text-muted-foreground">
+          See what you currently have out and your full history. Coming next.
+        </p>
+      </div>
+    </div>
+  </main>
+</div>

@@ -1,0 +1,74 @@
+<div>
+  <h1 class="font-serif text-3xl font-medium italic tracking-tight">My Borrows</h1>
+  <p class="mt-2 text-muted-foreground">What you currently have out, and your full borrowing history.</p>
+</div>
+
+<div class="mt-8 overflow-x-auto rounded-2xl border border-border">
+  <table class="w-full min-w-[560px] text-left text-sm">
+    <thead class="border-b border-border bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
+      <tr>
+        <th class="px-5 py-3 font-medium">Book</th>
+        <th class="px-5 py-3 font-medium">Borrowed</th>
+        <th class="px-5 py-3 font-medium">Due</th>
+        <th class="px-5 py-3 font-medium">Status</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-border">
+      @if (isLoading()) {
+        @for (i of [1, 2, 3, 4]; track i) {
+          <tr>
+            <td class="px-5 py-4" colspan="4">
+              <div class="h-4 w-full max-w-sm animate-pulse rounded bg-muted"></div>
+            </td>
+          </tr>
+        }
+      } @else if (isError()) {
+        <tr>
+          <td class="px-5 py-6 text-center text-destructive" colspan="4">Couldn't load your borrow history. Try refreshing.</td>
+        </tr>
+      } @else if (records().length === 0) {
+        <tr>
+          <td class="px-5 py-6 text-center text-muted-foreground" colspan="4">You haven't borrowed any books yet.</td>
+        </tr>
+      } @else {
+        @for (record of records(); track record.recordId) {
+          <tr class="hover:bg-muted/30">
+            <td class="px-5 py-4 font-medium">{{ record.bookTitle }}</td>
+            <td class="px-5 py-4 text-muted-foreground">{{ record.borrowedAt | date: 'mediumDate' }}</td>
+            <td class="px-5 py-4 text-muted-foreground">{{ record.dueDate | date: 'mediumDate' }}</td>
+            <td class="px-5 py-4">
+              @if (record.returnedAt) {
+                <span class="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">Returned</span>
+              } @else if (record.isOverdue) {
+                <span class="rounded-full bg-destructive/10 px-2.5 py-1 text-xs font-medium text-destructive">Overdue</span>
+              } @else {
+                <span class="rounded-full bg-primary/15 px-2.5 py-1 text-xs font-medium text-primary">Borrowed</span>
+              }
+            </td>
+          </tr>
+        }
+      }
+    </tbody>
+  </table>
+</div>
+
+@if (hasPrev() || hasNext()) {
+  <div class="mt-5 flex items-center justify-end gap-2">
+    <button
+      type="button"
+      [disabled]="!hasPrev()"
+      (click)="prevPage()"
+      class="rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50"
+    >
+      Previous
+    </button>
+    <button
+      type="button"
+      [disabled]="!hasNext()"
+      (click)="nextPage()"
+      class="rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50"
+    >
+      Next
+    </button>
+  </div>
+}

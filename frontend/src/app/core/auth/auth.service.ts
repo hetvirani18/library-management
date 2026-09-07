@@ -1,6 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { ApiClient } from '../api/api-client';
-import { AuthUser, AuthUserSchema, LoginCredentials, RegisterInput } from './auth.types';
+import { AuthUser, AuthUserSchema, LoginCredentials, RegisterInput, UpdateProfileInput } from './auth.types';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -35,6 +35,13 @@ export class AuthService {
 
   async register(input: RegisterInput): Promise<AuthUser> {
     const response = await this.api.post<AuthUser>('/auth/register', input);
+    const user = AuthUserSchema.parse(response.data);
+    this.currentUserSignal.set(user);
+    return user;
+  }
+
+  async updateProfile(input: UpdateProfileInput): Promise<AuthUser> {
+    const response = await this.api.put<AuthUser>('/auth/me', input);
     const user = AuthUserSchema.parse(response.data);
     this.currentUserSignal.set(user);
     return user;

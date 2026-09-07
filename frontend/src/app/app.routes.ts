@@ -8,6 +8,9 @@ import { LibrarianBooksComponent } from './pages/librarian-dashboard/books/books
 import { LibrarianMembersComponent } from './pages/librarian-dashboard/members/members';
 import { LibrarianBorrowsComponent } from './pages/librarian-dashboard/borrows/borrows';
 import { MemberDashboardComponent } from './pages/member-dashboard/member-dashboard';
+import { MemberCatalogComponent } from './pages/member-dashboard/catalog/catalog';
+import { MemberMyBorrowsComponent } from './pages/member-dashboard/my-borrows/my-borrows';
+import { MemberProfileComponent } from './pages/member-dashboard/profile/profile';
 import { authGuard, guestGuard, roleGuard } from './core/auth/auth.guard';
 
 export const routes: Routes = [
@@ -29,6 +32,11 @@ export const routes: Routes = [
     path: 'member',
     component: MemberDashboardComponent,
     canActivate: [authGuard, roleGuard('Member')],
+    children: [
+      { path: '', component: MemberCatalogComponent },
+      { path: 'my-borrows', component: MemberMyBorrowsComponent },
+      { path: 'profile', component: MemberProfileComponent },
+    ],
   },
   { path: '**', redirectTo: '' },
 ];

@@ -1,0 +1,72 @@
+<div>
+  <h1 class="font-serif text-3xl font-medium italic tracking-tight">Catalog</h1>
+  <p class="mt-2 text-muted-foreground">Browse what's on the shelf. Ask your librarian to check out a title for you.</p>
+</div>
+
+<div class="relative mt-8 max-w-sm">
+  <ng-icon name="lucideSearch" size="16" class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+  <input
+    type="text"
+    placeholder="Search by title or author"
+    [value]="search()"
+    (input)="onSearchChange($any($event.target).value)"
+    class="w-full rounded-lg border border-border bg-background py-2.5 pl-10 pr-3.5 text-sm outline-none placeholder:text-muted-foreground/60 focus:border-primary"
+  />
+</div>
+
+@if (isLoading()) {
+  <div class="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+    @for (i of [1, 2, 3, 4, 5, 6]; track i) {
+      <div class="h-32 animate-pulse rounded-2xl border border-border bg-card"></div>
+    }
+  </div>
+} @else if (isError()) {
+  <div class="mt-8 rounded-xl border border-destructive/30 bg-destructive/10 px-5 py-4 text-sm text-destructive">
+    Couldn't load the catalog. Try refreshing the page.
+  </div>
+} @else if (books().length === 0) {
+  <div class="mt-8 rounded-xl border border-border bg-card px-5 py-8 text-center text-sm text-muted-foreground">
+    No books found.
+  </div>
+} @else {
+  <div class="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+    @for (book of books(); track book.bookId) {
+      <div class="flex gap-3.5 rounded-2xl border border-border bg-card p-5">
+        <div class="h-[70px] w-[52px] shrink-0 rounded bg-gradient-to-br from-primary to-primary-soft"></div>
+        <div class="min-w-0">
+          <h3 class="truncate text-sm font-semibold">{{ book.title }}</h3>
+          <p class="mt-0.5 truncate text-xs text-muted-foreground">{{ book.authorName }}</p>
+          <span class="mt-2 inline-block rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">{{ book.genre }}</span>
+          <div class="mt-2 text-xs">
+            @if (book.availableCopies > 0) {
+              <span class="font-medium text-primary">{{ book.availableCopies }} available</span>
+            } @else {
+              <span class="font-medium text-muted-foreground">All copies checked out</span>
+            }
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+}
+
+@if (hasPrev() || hasNext()) {
+  <div class="mt-6 flex items-center justify-end gap-2">
+    <button
+      type="button"
+      [disabled]="!hasPrev()"
+      (click)="prevPage()"
+      class="rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50"
+    >
+      Previous
+    </button>
+    <button
+      type="button"
+      [disabled]="!hasNext()"
+      (click)="nextPage()"
+      class="rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50"
+    >
+      Next
+    </button>
+  </div>
+}

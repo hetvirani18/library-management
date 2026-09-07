@@ -1,10 +1,17 @@
 import { QueryClient } from '@tanstack/angular-query-experimental';
-import { BorrowService, BorrowPage } from '../data/borrow.service';
+import { BorrowService, BorrowPage, MyHistoryPage } from '../data/borrow.service';
 
 export function borrowRecordsQueryOptions(borrowService: BorrowService, page: () => BorrowPage) {
   return {
     queryKey: ['borrow', page()] as const,
     queryFn: () => borrowService.list(page()),
+  };
+}
+
+export function myBorrowHistoryQueryOptions(borrowService: BorrowService, page: () => MyHistoryPage) {
+  return {
+    queryKey: ['borrow', 'my-history', page()] as const,
+    queryFn: () => borrowService.myHistory(page()),
   };
 }
 

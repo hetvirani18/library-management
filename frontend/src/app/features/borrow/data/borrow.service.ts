@@ -11,6 +11,11 @@ export interface BorrowPage {
   limit?: number;
 }
 
+export interface MyHistoryPage {
+  cursor: number;
+  limit?: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class BorrowService {
   private readonly api = inject(ApiClient);
@@ -22,6 +27,15 @@ export class BorrowService {
 
     const endpoint = page.view === 'overdue' ? `/borrow/overdue?${params}` : `/borrow/all?${params}`;
     const result = await this.api.get<unknown>(endpoint);
+    return PaginatedBorrowRecordsSchema.parse(result.data);
+  }
+
+  async myHistory(page: MyHistoryPage): Promise<Paginated<BorrowRecord>> {
+    const params = new URLSearchParams();
+    params.set('cursor', String(page.cursor));
+    params.set('limit', String(page.limit ?? 20));
+
+    const result = await this.api.get<unknown>(`/borrow/my-history?${params}`);
     return PaginatedBorrowRecordsSchema.parse(result.data);
   }
 

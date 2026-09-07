@@ -16,6 +16,13 @@ public class CreateMemberRequest
     public string Password { get; set; } = string.Empty;
 }
 
+public class ResetMemberPasswordRequest
+{
+    [Required]
+    [MinLength(6)]
+    public string NewPassword { get; set; } = string.Empty;
+}
+
 public class UpdateMemberRequest
 {
     [Required]

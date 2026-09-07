@@ -17,6 +17,7 @@ public static class Errors
     public static readonly AppException ValidationFailed = new("Validation failed", 10002, 422);
     public static readonly AppException ResourceNotFound = new("Resource not found", 10003, 404);
     public static readonly AppException RouteNotFound = new("Route not found", 10004, 404);
+    public static readonly AppException RateLimitExceeded = new("Too many requests, please try again later", 10005, 429);
 
     public static readonly AppException NoTokenProvided = new("No authentication token provided", 20001, 401);
     public static readonly AppException InvalidAuthToken = new("Invalid authentication token", 20002, 401);

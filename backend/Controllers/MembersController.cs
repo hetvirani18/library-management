@@ -4,7 +4,6 @@ using LibraryWebApi.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace LibraryWebApi.Controllers;
 
@@ -21,14 +20,14 @@ public class MembersController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] PageQuery page)
     {
         var members = await _userManager.Users
             .Where(user => user.Role == AuthController.MemberRole)
             .OrderBy(user => user.FullName)
-            .ToListAsync();
+            .ToPaginatedAsync(page);
 
-        return Ok(ApiResponse<List<MemberResponse>>.SuccessResponse(members.Select(ToResponse).ToList()));
+        return Ok(ApiResponse<Paginated<MemberResponse>>.SuccessResponse(members.Map(ToResponse)));
     }
 
     [HttpGet("{id}")]
@@ -96,6 +95,29 @@ public class MembersController : ControllerBase
         await _userManager.UpdateAsync(member);
 
         return Ok(ApiResponse<MemberResponse>.SuccessResponse(ToResponse(member), "Member updated successfully"));
+    }
+
+    [HttpPatch("{id}/reset-password")]
+    public async Task<IActionResult> ResetPassword(string id, ResetMemberPasswordRequest request)
+    {
+        if (!ModelState.IsValid)
+        {
+            throw Errors.ValidationFailed;
+        }
+
+        var member = await _userManager.FindByIdAsync(id) ?? throw Errors.MemberNotFound;
+
+        var token = await _userManager.GeneratePasswordResetTokenAsync(member);
+        var result = await _userManager.ResetPasswordAsync(member, token, request.NewPassword);
+        if (!result.Succeeded)
+        {
+            throw new AppException(
+                string.Join(" ", result.Errors.Select(e => e.Description)),
+                Errors.ValidationFailed.Code,
+                Errors.ValidationFailed.StatusCode);
+        }
+
+        return Ok(ApiResponse<object?>.SuccessResponse(null, "Member's password reset successfully"));
     }
 
     [HttpPatch("{id}/deactivate")]

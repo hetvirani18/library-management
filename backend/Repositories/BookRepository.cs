@@ -1,3 +1,4 @@
+using LibraryWebApi.Common;
 using LibraryWebApi.Data;
 using LibraryWebApi.Models;
 using Microsoft.EntityFrameworkCore;
@@ -16,29 +17,29 @@ public class BookRepository : IBookRepository
     public Task<Book?> GetByIdAsync(int bookId) =>
         _context.Books.AsNoTracking().FirstOrDefaultAsync(book => book.BookId == bookId);
 
-    public Task<List<Book>> GetAllAsync() =>
-        _context.Books.AsNoTracking().OrderBy(book => book.Title).ToListAsync();
+    public Task<Paginated<Book>> GetAllAsync(PageQuery page) =>
+        _context.Books.AsNoTracking().OrderBy(book => book.Title).ToPaginatedAsync(page);
 
-    public Task<List<Book>> GetAvailableAsync() =>
+    public Task<Paginated<Book>> GetAvailableAsync(PageQuery page) =>
         _context.Books.AsNoTracking()
             .Where(book => book.AvailableCopies > 0)
             .OrderBy(book => book.Title)
-            .ToListAsync();
+            .ToPaginatedAsync(page);
 
-    public Task<List<Book>> GetByGenreAsync(string genre) =>
+    public Task<Paginated<Book>> GetByGenreAsync(string genre, PageQuery page) =>
         _context.Books.AsNoTracking()
             .Where(book => EF.Functions.ILike(book.Genre, genre))
             .OrderBy(book => book.Title)
-            .ToListAsync();
+            .ToPaginatedAsync(page);
 
-    public Task<List<Book>> SearchAsync(string query)
+    public Task<Paginated<Book>> SearchAsync(string query, PageQuery page)
     {
         var pattern = $"%{query}%";
 
         return _context.Books.AsNoTracking()
             .Where(book => EF.Functions.ILike(book.Title, pattern) || EF.Functions.ILike(book.AuthorName, pattern))
             .OrderBy(book => book.Title)
-            .ToListAsync();
+            .ToPaginatedAsync(page);
     }
 
     public Task<int> CountAsync() => _context.Books.CountAsync();

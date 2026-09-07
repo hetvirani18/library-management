@@ -1,3 +1,4 @@
+using LibraryWebApi.Common;
 using LibraryWebApi.Data;
 using LibraryWebApi.Models;
 using Microsoft.EntityFrameworkCore;
@@ -18,27 +19,27 @@ public class BorrowRecordRepository : IBorrowRecordRepository
             .FirstOrDefaultAsync(record =>
                 record.BookId == bookId && record.UserId == userId && record.ReturnedAt == null);
 
-    public Task<List<BorrowRecord>> GetOverdueAsync() =>
+    public Task<Paginated<BorrowRecord>> GetOverdueAsync(PageQuery page) =>
         _context.BorrowRecords.AsNoTracking()
             .Include(record => record.Book)
             .Include(record => record.User)
             .Where(record => record.ReturnedAt == null && record.DueDate < DateTime.UtcNow)
             .OrderBy(record => record.DueDate)
-            .ToListAsync();
+            .ToPaginatedAsync(page);
 
-    public Task<List<BorrowRecord>> GetAllAsync() =>
+    public Task<Paginated<BorrowRecord>> GetAllAsync(PageQuery page) =>
         _context.BorrowRecords.AsNoTracking()
             .Include(record => record.Book)
             .Include(record => record.User)
             .OrderByDescending(record => record.BorrowedAt)
-            .ToListAsync();
+            .ToPaginatedAsync(page);
 
-    public Task<List<BorrowRecord>> GetMemberHistoryAsync(string userId) =>
+    public Task<Paginated<BorrowRecord>> GetMemberHistoryAsync(string userId, PageQuery page) =>
         _context.BorrowRecords.AsNoTracking()
             .Include(record => record.Book)
             .Where(record => record.UserId == userId)
             .OrderByDescending(record => record.BorrowedAt)
-            .ToListAsync();
+            .ToPaginatedAsync(page);
 
     public Task<int> CountActiveAsync() =>
         _context.BorrowRecords.AsNoTracking().CountAsync(record => record.ReturnedAt == null);

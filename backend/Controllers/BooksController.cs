@@ -21,10 +21,10 @@ public class BooksController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] PageQuery page)
     {
-        var books = await _bookRepository.GetAllAsync();
-        return Ok(ApiResponse<List<BookResponse>>.SuccessResponse(books.Select(ToResponse).ToList()));
+        var books = await _bookRepository.GetAllAsync(page);
+        return Ok(ApiResponse<Paginated<BookResponse>>.SuccessResponse(books.Map(ToResponse)));
     }
 
     [HttpGet("{id:int}")]
@@ -35,29 +35,29 @@ public class BooksController : ControllerBase
     }
 
     [HttpGet("available")]
-    public async Task<IActionResult> GetAvailable()
+    public async Task<IActionResult> GetAvailable([FromQuery] PageQuery page)
     {
-        var books = await _bookRepository.GetAvailableAsync();
-        return Ok(ApiResponse<List<BookResponse>>.SuccessResponse(books.Select(ToResponse).ToList()));
+        var books = await _bookRepository.GetAvailableAsync(page);
+        return Ok(ApiResponse<Paginated<BookResponse>>.SuccessResponse(books.Map(ToResponse)));
     }
 
     [HttpGet("genre/{genre}")]
-    public async Task<IActionResult> GetByGenre(string genre)
+    public async Task<IActionResult> GetByGenre(string genre, [FromQuery] PageQuery page)
     {
-        var books = await _bookRepository.GetByGenreAsync(genre);
-        return Ok(ApiResponse<List<BookResponse>>.SuccessResponse(books.Select(ToResponse).ToList()));
+        var books = await _bookRepository.GetByGenreAsync(genre, page);
+        return Ok(ApiResponse<Paginated<BookResponse>>.SuccessResponse(books.Map(ToResponse)));
     }
 
     [HttpGet("search")]
-    public async Task<IActionResult> Search([FromQuery] string q)
+    public async Task<IActionResult> Search([FromQuery] string q, [FromQuery] PageQuery page)
     {
         if (string.IsNullOrWhiteSpace(q))
         {
             throw Errors.ValidationFailed;
         }
 
-        var books = await _bookRepository.SearchAsync(q.Trim());
-        return Ok(ApiResponse<List<BookResponse>>.SuccessResponse(books.Select(ToResponse).ToList()));
+        var books = await _bookRepository.SearchAsync(q.Trim(), page);
+        return Ok(ApiResponse<Paginated<BookResponse>>.SuccessResponse(books.Map(ToResponse)));
     }
 
     [HttpPost]

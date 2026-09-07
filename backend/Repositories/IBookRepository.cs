@@ -1,3 +1,4 @@
+using LibraryWebApi.Common;
 using LibraryWebApi.Models;
 
 namespace LibraryWebApi.Repositories;
@@ -5,10 +6,10 @@ namespace LibraryWebApi.Repositories;
 public interface IBookRepository
 {
     Task<Book?> GetByIdAsync(int bookId);
-    Task<List<Book>> GetAllAsync();
-    Task<List<Book>> GetAvailableAsync();
-    Task<List<Book>> GetByGenreAsync(string genre);
-    Task<List<Book>> SearchAsync(string query);
+    Task<Paginated<Book>> GetAllAsync(PageQuery page);
+    Task<Paginated<Book>> GetAvailableAsync(PageQuery page);
+    Task<Paginated<Book>> GetByGenreAsync(string genre, PageQuery page);
+    Task<Paginated<Book>> SearchAsync(string query, PageQuery page);
     Task<int> CountAsync();
     Task AddAsync(Book book);
     Task UpdateAsync(Book book);

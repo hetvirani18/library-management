@@ -178,7 +178,7 @@ On failure, `success` is `false`, `data` is `null`, and `error` holds `{ code, m
 | POST | `/api/auth/logout` | No | Clears the `access_token` cookie |
 | GET | `/api/auth/me` | Yes | Returns the currently logged-in user's info |
 | PUT | `/api/auth/me` | Yes | Update the caller's own name/email |
-| GET | `/api/books`, `/api/books/{id}`, `/api/books/available`, `/api/books/genre/{genre}`, `/api/books/search?q=` | Yes | Browse/search the catalog |
+| GET | `/api/books`, `/api/books/{id}`, `/api/books/available`, `/api/books/genre/{genre}`, `/api/books/search?q=` | Yes | Browse/search the catalog (list endpoints are paginated, see below) |
 | POST/PUT/DELETE | `/api/books`, `/api/books/{id}` | Librarian only | Manage the catalog |
 | POST | `/api/borrow`, `/api/borrow/return` | Librarian only | Assign / return a book for a member (`{ bookId, memberId }`, concurrency-safe — see `docs/backend-architecture.md` §4a) |
 | GET | `/api/borrow/my-history` | Yes | The caller's own borrow history (the one self-service action a Member has) |
@@ -186,8 +186,18 @@ On failure, `success` is `false`, `data` is `null`, and `error` holds `{ code, m
 | GET | `/api/members`, `/api/members/{id}` | Librarian only | List/view members |
 | POST | `/api/members` | Librarian only | Add a member manually |
 | PUT | `/api/members/{id}` | Librarian only | Edit a member's details |
+| PATCH | `/api/members/{id}/reset-password` | Librarian only | Set a member's password directly — no forgot-password flow, a locked-out member asks the Librarian instead |
 | PATCH | `/api/members/{id}/deactivate`, `/api/members/{id}/activate` | Librarian only | Block/restore a member's ability to log in and borrow — no delete endpoint, history is preserved |
 | GET | `/api/dashboard/stats` | Librarian only | Summary counts for a landing page |
+
+**Pagination:** every list endpoint above accepts `?cursor=&limit=` (defaults `cursor=0&limit=20`,
+max `limit=100`) and returns `{ data: [...], pagination: { hasNext, nextCursor } }` inside the usual
+response envelope — pass `nextCursor` back as the next request's `cursor` to page through
+(TanStack Query `useInfiniteQuery`-shaped). Full details: `docs/backend-architecture.md` §3.
+
+**Rate limiting:** 300 requests / 15 minutes per client IP, enforced globally via ASP.NET Core's
+built-in rate limiter (no third-party package). Exceeding it returns `429` with the same response
+envelope as any other error (`error.code: 10005`). Details: `docs/backend-architecture.md` §5a.
 
 ## Roles
 

@@ -50,34 +50,34 @@ public class BorrowController : ControllerBase
     }
 
     [HttpGet("my-history")]
-    public async Task<IActionResult> MyHistory()
+    public async Task<IActionResult> MyHistory([FromQuery] PageQuery page)
     {
-        var history = await _borrowRecordRepository.GetMemberHistoryAsync(GetUserId());
-        return Ok(ApiResponse<List<BorrowRecordResponse>>.SuccessResponse(history.Select(ToResponse).ToList()));
+        var history = await _borrowRecordRepository.GetMemberHistoryAsync(GetUserId(), page);
+        return Ok(ApiResponse<Paginated<BorrowRecordResponse>>.SuccessResponse(history.Map(ToResponse)));
     }
 
     [HttpGet("overdue")]
     [Authorize(Roles = AuthController.LibrarianRole)]
-    public async Task<IActionResult> Overdue()
+    public async Task<IActionResult> Overdue([FromQuery] PageQuery page)
     {
-        var overdue = await _borrowRecordRepository.GetOverdueAsync();
-        return Ok(ApiResponse<List<BorrowRecordResponse>>.SuccessResponse(overdue.Select(ToResponse).ToList()));
+        var overdue = await _borrowRecordRepository.GetOverdueAsync(page);
+        return Ok(ApiResponse<Paginated<BorrowRecordResponse>>.SuccessResponse(overdue.Map(ToResponse)));
     }
 
     [HttpGet("all")]
     [Authorize(Roles = AuthController.LibrarianRole)]
-    public async Task<IActionResult> All()
+    public async Task<IActionResult> All([FromQuery] PageQuery page)
     {
-        var all = await _borrowRecordRepository.GetAllAsync();
-        return Ok(ApiResponse<List<BorrowRecordResponse>>.SuccessResponse(all.Select(ToResponse).ToList()));
+        var all = await _borrowRecordRepository.GetAllAsync(page);
+        return Ok(ApiResponse<Paginated<BorrowRecordResponse>>.SuccessResponse(all.Map(ToResponse)));
     }
 
     [HttpGet("history/{userId}")]
     [Authorize(Roles = AuthController.LibrarianRole)]
-    public async Task<IActionResult> HistoryForMember(string userId)
+    public async Task<IActionResult> HistoryForMember(string userId, [FromQuery] PageQuery page)
     {
-        var history = await _borrowRecordRepository.GetMemberHistoryAsync(userId);
-        return Ok(ApiResponse<List<BorrowRecordResponse>>.SuccessResponse(history.Select(ToResponse).ToList()));
+        var history = await _borrowRecordRepository.GetMemberHistoryAsync(userId, page);
+        return Ok(ApiResponse<Paginated<BorrowRecordResponse>>.SuccessResponse(history.Map(ToResponse)));
     }
 
     private string GetUserId()

@@ -1,4 +1,7 @@
 using System.Text;
+using System.Text.Json;
+using System.Threading.RateLimiting;
+using LibraryWebApi.Common;
 using LibraryWebApi.Data;
 using LibraryWebApi.Middleware;
 using LibraryWebApi.Models;
@@ -6,6 +9,7 @@ using LibraryWebApi.Repositories;
 using LibraryWebApi.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -83,6 +87,31 @@ builder.Services.AddCors(options =>
     });
 });
 
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 300,
+                Window = TimeSpan.FromMinutes(15),
+                QueueLimit = 0
+            }));
+
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        context.HttpContext.Response.ContentType = "application/json";
+        var body = JsonSerializer.Serialize(
+            ApiResponse.ErrorResponse(Errors.RateLimitExceeded.Message, Errors.RateLimitExceeded.Code),
+            new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+
+        await context.HttpContext.Response.WriteAsync(body, cancellationToken);
+    };
+});
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -119,6 +148,8 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.UseMiddleware<ErrorHandlingMiddleware>();
+
+app.UseRateLimiter();
 
 if (app.Environment.IsDevelopment())
 {

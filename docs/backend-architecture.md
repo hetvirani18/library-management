@@ -54,7 +54,11 @@ backend/
 │   └── IBorrowRecordRepository.cs / BorrowRecordRepository.cs
 ├── Common/
 │   ├── AppException.cs                     # AppException class + the Errors catalog
-│   └── ApiResponse.cs                      # success/error JSON envelope every endpoint returns
+│   ├── ApiResponse.cs                      # success/error JSON envelope every endpoint returns
+│   ├── Pagination.cs                       # Pagination, Paginated<T>, PageQuery — see §3's
+│   │                                        # pagination convention note
+│   └── QueryableExtensions.cs               # ToPaginatedAsync() — generic cursor pagination
+│                                            # over any ordered IQueryable<T>
 ├── Middleware/
 │   └── ErrorHandlingMiddleware.cs          # global catch — AppException → typed JSON error;
 │                                            # anything else → generic 500
@@ -75,6 +79,25 @@ All routes mount under `/api/...` via controller attribute routing (`[Route("api
 + `[HttpGet]`/`[HttpPost]`/etc. per action — no separate routes files, see README §"How the backend
 is put together"). Every response uses the `ApiResponse<T>` envelope.
 
+**Pagination (marked "📄 paginated" below):** every endpoint that returns a list accepts
+`?cursor=&limit=` query params (`Common/Pagination.cs` — `PageQuery`, clamps `limit` to 1–100,
+defaults to `cursor=0&limit=20`) and returns its list wrapped as `Paginated<T>` inside the usual
+`ApiResponse<T>.Data`:
+
+```json
+{ "data": [ ... ], "pagination": { "hasNext": true, "nextCursor": 20 } }
+```
+
+`nextCursor` is an **offset**, not an entity ID — pass it straight back as the next request's
+`cursor` (this is what makes it "infinite query"-shaped: keep calling with the last response's
+`nextCursor` until `hasNext` is `false`). An offset was used instead of "last item's ID" because
+the three paginated resources don't share a cursor-compatible key type: `Book`/`BorrowRecord` use
+`int` primary keys, but `AspNetUsers.Id` (members) is a string GUID — an offset cursor works
+identically across all three, an ID-based cursor wouldn't. `Common/QueryableExtensions.cs`'s
+`ToPaginatedAsync()` implements this once, generically, over any ordered `IQueryable<T>` (it
+fetches `limit + 1` rows and checks whether the extra one exists to determine `hasNext` without a
+separate `COUNT` query).
+
 ### 3.1 Auth — `/api/auth` — ✅ built
 
 | Method | Path | Access | Purpose |
@@ -89,11 +112,11 @@ is put together"). Every response uses the `ApiResponse<T>` envelope.
 
 | Method | Path | Access | Purpose |
 |---|---|---|---|
-| GET | `/` | authed | List the catalog (any logged-in user — Librarian or Member) |
+| GET | `/` 📄 | authed | List the catalog (any logged-in user — Librarian or Member) |
 | GET | `/:id` | authed | Single book detail |
-| GET | `/available` | authed | Books with `AvailableCopies > 0` |
-| GET | `/genre/:genre` | authed | Filter by genre |
-| GET | `/search?q=` | authed | Case-insensitive partial match against `Title` OR `AuthorName` |
+| GET | `/available` 📄 | authed | Books with `AvailableCopies > 0` |
+| GET | `/genre/:genre` 📄 | authed | Filter by genre |
+| GET | `/search?q=` 📄 | authed | Case-insensitive partial match against `Title` OR `AuthorName` |
 | POST | `/` | Librarian only | Add a book |
 | PUT | `/:id` | Librarian only | Edit a book's details |
 | DELETE | `/:id` | Librarian only | Remove a book — blocked (`BookHasActiveBorrows`) if it has any borrow history, active or returned (the DB FK is RESTRICT, not just an app-level check) |
@@ -109,10 +132,10 @@ what's currently assigned to them and their past history.
 |---|---|---|---|
 | POST | `/` | Librarian only | Assign a book to a member — body: `{ bookId, memberId }`. Validates the target `memberId` actually belongs to a `Member` (not another `Librarian`) via `Errors.MemberNotFound` |
 | POST | `/return` | Librarian only | Return a book on a member's behalf — body: `{ bookId, memberId }` |
-| GET | `/my-history` | authed | The caller's own borrow history (past + active) — the one self-service action left for a Member |
-| GET | `/overdue` | Librarian only | Every overdue record, system-wide |
-| GET | `/all` | Librarian only | Every borrow record, system-wide |
-| GET | `/history/:userId` | Librarian only | Any specific member's borrow history |
+| GET | `/my-history` 📄 | authed | The caller's own borrow history (past + active) — the one self-service action left for a Member |
+| GET | `/overdue` 📄 | Librarian only | Every overdue record, system-wide |
+| GET | `/all` 📄 | Librarian only | Every borrow record, system-wide |
+| GET | `/history/:userId` 📄 | Librarian only | Any specific member's borrow history |
 
 ### 3.4 Members — `/api/members` — ✅ built
 
@@ -125,10 +148,11 @@ blocked from logging in (`Errors.AccountDeactivated`) and from borrowing (`Borro
 
 | Method | Path | Access | Purpose |
 |---|---|---|---|
-| GET | `/api/members` | Librarian only | List every member (`Role == "Member"`) |
+| GET | `/api/members` 📄 | Librarian only | List every member (`Role == "Member"`) |
 | GET | `/api/members/:id` | Librarian only | Single member detail |
 | POST | `/api/members` | Librarian only | Add a member manually (account + password set by the Librarian, e.g. for someone without self-service access) |
 | PUT | `/api/members/:id` | Librarian only | Edit a member's `FullName`/`Email` |
+| PATCH | `/api/members/:id/reset-password` | Librarian only | Sets a new password directly (`UserManager.GeneratePasswordResetTokenAsync` + `ResetPasswordAsync` — no old password needed). Replaces a self-service forgot-password flow: a member who's locked out asks the Librarian to reset it |
 | PATCH | `/api/members/:id/deactivate` | Librarian only | Sets `IsActive = false` |
 | PATCH | `/api/members/:id/activate` | Librarian only | Sets `IsActive = true` |
 
@@ -231,6 +255,7 @@ Errors.SomeError;` — never construct an `AppException` inline.
 | 10002 | `ValidationFailed` | 422 | Request failed data-annotation validation |
 | 10003 | `ResourceNotFound` | 404 | Generic not-found fallback |
 | 10004 | `RouteNotFound` | 404 | No matching route |
+| 10005 | `RateLimitExceeded` | 429 | Client exceeded the global rate limit — see §5a |
 | 20001 | `NoTokenProvided` | 401 | Protected route hit with no `access_token` cookie |
 | 20002 | `InvalidAuthToken` | 401 | Token present but invalid/expired/tampered |
 | 20003 | `EmailAlreadyExists` | 409 | Register with an email already in use |
@@ -249,7 +274,48 @@ throws it has been built yet (`30001`–`30005` are ready and waiting for `Books
 
 ---
 
+## 5a. Rate Limiting
+
+Global, per-client-IP, using ASP.NET Core's **built-in** rate limiter
+(`Microsoft.AspNetCore.RateLimiting` — part of the shared framework since .NET 7, no NuGet package
+needed, the direct first-party equivalent of `express-rate-limit`). Configured in `Program.cs`:
+
+```csharp
+options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+    RateLimitPartition.GetFixedWindowLimiter(
+        partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        factory: _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 300,
+            Window = TimeSpan.FromMinutes(15),
+            QueueLimit = 0
+        }));
+```
+
+Fixed window, 300 requests per 15 minutes per IP, no queueing (a request over the limit is
+rejected immediately rather than held and retried) — same numbers as GlobeTrotter's global
+`express-rate-limit` config. A custom `OnRejected` handler overrides ASP.NET Core's bare default
+429 body so a rejected request gets the same `ApiResponse` envelope as every other error:
+
+```json
+{ "success": false, "error": { "code": 10005, "message": "Too many requests, please try again later" } }
+```
+
+`app.UseRateLimiter()` is registered early in the pipeline (right after the error-handling
+middleware, before CORS/auth/routing) so an over-limit client is rejected as cheaply as possible.
+Verified by firing 305 rapid requests at a running instance — the budget was already partly
+consumed by earlier test traffic in the same 15-minute window, and `429`s with the correct error
+body started appearing once the shared 300-request budget ran out, confirming the limiter counts
+globally per IP rather than per-endpoint.
+
+---
+
 ## 6. What This Project Deliberately Doesn't Have
+
+**Self-service forgot/reset password.** A member who forgets their password asks a Librarian to
+reset it (`PATCH /api/members/:id/reset-password`, §3.4) rather than requesting an email link
+themselves — simpler, no email service needed at all (see below), and reasonable for a library
+where the Librarian is already the point of contact for account issues.
 
 Unlike GlobeTrotter, this backend has no external API integrations (no city/activity/pricing
 providers, no email service) — the Library domain doesn't need any. If a "notify member their book
@@ -268,4 +334,6 @@ endpoint's success response.
 5. ~~Books~~ — `BooksController` (§3.2), Librarian-only writes via `[Authorize(Roles = "Librarian")]` — **done**
 6. ~~Borrowing~~ — `BorrowController` (§3.3) + `BorrowService`: borrow/return with transaction + row-locking (§4a), overdue report, history — **done**
 7. ~~Members~~ — `/api/members` (§3.4) for Librarian member management — **done**
-8. **Frontend** — Angular app in `frontend/`, wired against everything above — backend v1 is functionally complete
+8. ~~Self-profile update, book search, dashboard stats, manual member add, Librarian-mediated borrowing~~ — **done**
+9. ~~Pagination, password reset (in place of forgot-password), rate limiting~~ — **done**
+10. **Frontend** — Angular app in `frontend/`, wired against everything above — backend v1 is functionally complete

@@ -9,6 +9,7 @@ public class Book
     public string AuthorName { get; set; } = string.Empty;
     public int TotalCopies { get; set; }
     public int AvailableCopies { get; set; }
+    public string? CoverImagePath { get; set; }
 
     public List<BorrowRecord> BorrowRecords { get; set; } = new();
 }

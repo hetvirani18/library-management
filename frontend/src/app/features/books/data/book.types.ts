@@ -9,6 +9,7 @@ export const BookSchema = z.object({
   authorName: z.string(),
   totalCopies: z.number(),
   availableCopies: z.number(),
+  coverImageUrl: z.string().nullable(),
 });
 export type Book = z.infer<typeof BookSchema>;
 

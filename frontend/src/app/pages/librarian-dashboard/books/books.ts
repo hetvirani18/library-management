@@ -1,4 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { QueryClient, injectMutation, injectQuery } from '@tanstack/angular-query-experimental';
 import { NgIcon, provideIcons } from '@ng-icons/core';
@@ -13,7 +14,7 @@ import { ButtonComponent } from '../../../shared/ui/button/button';
 @Component({
   selector: 'app-librarian-books',
   standalone: true,
-  imports: [ReactiveFormsModule, NgIcon, ModalComponent, ButtonComponent],
+  imports: [ReactiveFormsModule, NgIcon, ModalComponent, ButtonComponent, RouterLink],
   providers: [provideIcons({ lucidePlus, lucidePencil, lucideTrash2, lucideSearch })],
   templateUrl: './books.html',
 })

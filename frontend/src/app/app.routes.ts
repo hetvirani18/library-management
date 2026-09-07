@@ -11,6 +11,7 @@ import { MemberDashboardComponent } from './pages/member-dashboard/member-dashbo
 import { MemberCatalogComponent } from './pages/member-dashboard/catalog/catalog';
 import { MemberMyBorrowsComponent } from './pages/member-dashboard/my-borrows/my-borrows';
 import { MemberProfileComponent } from './pages/member-dashboard/profile/profile';
+import { BookDetailComponent } from './pages/book-detail/book-detail';
 import { authGuard, guestGuard, roleGuard } from './core/auth/auth.guard';
 
 export const routes: Routes = [
@@ -24,6 +25,7 @@ export const routes: Routes = [
     children: [
       { path: '', component: LibrarianOverviewComponent },
       { path: 'books', component: LibrarianBooksComponent },
+      { path: 'books/:id', component: BookDetailComponent },
       { path: 'members', component: LibrarianMembersComponent },
       { path: 'borrows', component: LibrarianBorrowsComponent },
     ],
@@ -34,6 +36,7 @@ export const routes: Routes = [
     canActivate: [authGuard, roleGuard('Member')],
     children: [
       { path: '', component: MemberCatalogComponent },
+      { path: 'books/:id', component: BookDetailComponent },
       { path: 'my-borrows', component: MemberMyBorrowsComponent },
       { path: 'profile', component: MemberProfileComponent },
     ],

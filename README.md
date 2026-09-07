@@ -5,8 +5,8 @@ member browses books, borrows and returns them, and sees their own history. `bac
 authenticated REST API (ASP.NET Core); `frontend/` is the Angular app that talks to it.
 
 - **This file** — what the project is, how to set it up and run it.
-- **`docs/backend-architecture.md`** — the full backend design: every module, every endpoint (built
-  and planned), the error-code catalog, the auth mechanism, and the remaining build order.
+- **`docs/backend-architecture.md`** — the full backend design: every module, every endpoint, the
+  error-code catalog, and the auth mechanism.
 - **`docs/frontend-architecture.md`** — the Angular architecture guide: folder structure, state
   ownership (TanStack Query vs. signals vs. forms), the API client, styling rules, and how it
   differs from a React/Next.js setup.
@@ -41,7 +41,7 @@ Program.cs middleware pipeline
    ▼
 Controller  (Controllers/*.cs)
    │  reads the request, validates ModelState, calls into Identity's UserManager
-   │  or (once added) a repository — throws a typed AppException on any business error
+   │  or a repository — throws a typed AppException on any business error
    ▼
 AppException → caught by ErrorHandlingMiddleware
    │  turned into a consistent JSON envelope: { success, message, data, error, timestamp }
@@ -182,6 +182,8 @@ On failure, `success` is `false`, `data` is `null`, and `error` holds `{ code, m
 | PUT | `/api/auth/me` | Yes | Update the caller's own name/email |
 | GET | `/api/books`, `/api/books/{id}`, `/api/books/available`, `/api/books/genre/{genre}`, `/api/books/search?q=` | Yes | Browse/search the catalog (list endpoints are paginated, see below) |
 | POST/PUT/DELETE | `/api/books`, `/api/books/{id}` | Librarian only | Manage the catalog |
+| POST | `/api/books/{id}/cover` | Librarian only | Upload/replace a book's cover image (`multipart/form-data`, JPEG/PNG/WEBP, ≤5 MB) — stored locally under `wwwroot/uploads/books/`, served statically |
+| DELETE | `/api/books/{id}/cover` | Librarian only | Remove a book's cover image |
 | POST | `/api/borrow`, `/api/borrow/return` | Librarian only | Assign / return a book for a member (`{ bookId, memberId }`, concurrency-safe — see `docs/backend-architecture.md` §4a) |
 | GET | `/api/borrow/my-history` | Yes | The caller's own borrow history (the one self-service action a Member has) |
 | GET | `/api/borrow/overdue`, `/api/borrow/all`, `/api/borrow/history/{userId}` | Librarian only | System-wide borrow reporting |
@@ -227,15 +229,22 @@ npm start          # ng serve — http://localhost:4200
 ```
 
 The API base URL is set in `src/app/types/constants.ts` (`API_BASE_URL`) — update it if the
-backend isn't running on `http://localhost:5200`.
+backend isn't running on `http://localhost:5043`.
 
-### What's built so far
+### Pages
 
-The home page (`pages/home/`) with AOS scroll animations and light/dark theme support (toggle in
-the nav, `core/theme/theme.service.ts`, persisted per-browser, OKLCH color tokens so both themes
-share the same palette — see `docs/frontend-architecture.md` §10), and the core architecture
-skeleton: `ApiClient` (matches the backend's `ApiResponse<T>`/`Paginated<T>` envelope exactly, uses
-`withCredentials: true` — no token in `localStorage`, the cookie is `HttpOnly` on purpose, see
-`docs/frontend-architecture.md` §0), a signal-based `AuthService`, route guards, and TanStack
-Query wired into `app.config.ts`. `/login` and `/register` are route stubs — the actual auth UI
-and every feature screen (book catalog, borrowing, member management, dashboard) are next.
+- **`/`** — public landing page, light/dark theme toggle (`core/theme/theme.service.ts`, persisted
+  per-browser, OKLCH tokens so both themes share one palette — `docs/frontend-architecture.md` §10).
+- **`/login`, `/register`** — auth forms against `AuthService`, redirect by role on success.
+- **`/librarian`** — tabbed dashboard (Dashboard / Books / Members / Borrowing): catalog CRUD with
+  cover-image upload, member management (add/edit/deactivate/reset password), and assigning/
+  returning books on a member's behalf.
+- **`/member`** — tabbed dashboard (Catalog / My Borrows / Profile): read-only catalog browsing,
+  own borrow history, and self-profile editing.
+- **`/librarian/books/:id`, `/member/books/:id`** — shared book detail page (cover, ISBN, copy
+  counts; upload/replace/remove cover is Librarian-only).
+
+Cross-cutting pieces: `ApiClient` (matches the backend's `ApiResponse<T>`/`Paginated<T>` envelope
+exactly, `withCredentials: true` — no token in `localStorage`, the cookie is `HttpOnly` on purpose,
+see `docs/frontend-architecture.md` §0), a signal-based `AuthService`, role-based route guards, and
+TanStack Angular Query wired into `app.config.ts` for all server state.

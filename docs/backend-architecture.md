@@ -39,6 +39,8 @@ backend/
 ├── DTOs/
 │   ├── AuthDtos.cs                         # RegisterRequest, LoginRequest, UpdateProfileRequest, AuthResponse
 │   ├── BookDtos.cs                         # CreateBookRequest, UpdateBookRequest, BookResponse
+│   │                                        # (BookResponse.CoverImageUrl is derived, not stored —
+│   │                                        # see §3.2)
 │   ├── BorrowDtos.cs                       # BorrowBookRequest, ReturnBookRequest, BorrowRecordResponse
 │   ├── MemberDtos.cs                       # CreateMemberRequest, UpdateMemberRequest, MemberResponse
 │   └── DashboardDtos.cs                    # DashboardStatsResponse
@@ -119,7 +121,9 @@ separate `COUNT` query).
 | GET | `/search?q=` 📄 | authed | Case-insensitive partial match against `Title` OR `AuthorName` |
 | POST | `/` | Librarian only | Add a book |
 | PUT | `/:id` | Librarian only | Edit a book's details |
-| DELETE | `/:id` | Librarian only | Remove a book — blocked (`BookHasActiveBorrows`) if it has any borrow history, active or returned (the DB FK is RESTRICT, not just an app-level check) |
+| POST | `/:id/cover` | Librarian only | Upload/replace the book's cover image — `multipart/form-data`, one `file` field, JPEG/PNG/WEBP only, ≤5 MB (`Errors.InvalidCoverImage` otherwise). Saved to `wwwroot/uploads/books/{bookId}-{guid}.{ext}`, replacing any previous file; `BookResponse.CoverImageUrl` is built from the request's own scheme+host, never hardcoded |
+| DELETE | `/:id/cover` | Librarian only | Delete the book's cover file and clear `CoverImagePath` |
+| DELETE | `/:id` | Librarian only | Remove a book — blocked (`BookHasActiveBorrows`) if it has any borrow history, active or returned (the DB FK is RESTRICT, not just an app-level check). Also deletes its cover file, if any |
 
 ### 3.3 Borrowing — `/api/borrow` — ✅ built
 
@@ -267,10 +271,7 @@ Errors.SomeError;` — never construct an `AppException` inline.
 | 30003 | `NoAvailableCopies` | 409 | Borrow attempted with `AvailableCopies == 0` |
 | 30004 | `BookNotBorrowed` | 409 | Return attempted with no matching active borrow record |
 | 30005 | `BookHasActiveBorrows` | 409 | Delete-book attempted on a book with any borrow history (RESTRICT FK, not just active borrows) |
-
-Every code above already exists in `Common/AppException.cs`, whether or not the endpoint that
-throws it has been built yet (`30001`–`30005` are ready and waiting for `BooksController`/
-`BorrowController`).
+| 30006 | `InvalidCoverImage` | 422 | Cover upload missing/empty/oversized (>5 MB) or not JPEG/PNG/WEBP |
 
 ---
 
@@ -336,4 +337,7 @@ endpoint's success response.
 7. ~~Members~~ — `/api/members` (§3.4) for Librarian member management — **done**
 8. ~~Self-profile update, book search, dashboard stats, manual member add, Librarian-mediated borrowing~~ — **done**
 9. ~~Pagination, password reset (in place of forgot-password), rate limiting~~ — **done**
-10. **Frontend** — Angular app in `frontend/`, wired against everything above — backend v1 is functionally complete
+10. ~~Frontend~~ — Angular app in `frontend/`, wired against everything above (auth, both role
+    dashboards, book/member/borrow management, self-profile) — **done**
+11. ~~Book cover images~~ — `CoverImagePath` on `Book`, upload/delete endpoints (§3.2), served via
+    `app.UseStaticFiles()` from `wwwroot/uploads/books/` — **done**

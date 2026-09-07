@@ -29,3 +29,28 @@ export function deleteBookMutationOptions(booksService: BooksService, queryClien
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['books'] }),
   };
 }
+
+export function bookQueryOptions(booksService: BooksService, bookId: () => number) {
+  return {
+    queryKey: ['books', 'detail', bookId()] as const,
+    queryFn: () => booksService.getById(bookId()),
+  };
+}
+
+export function uploadBookCoverMutationOptions(booksService: BooksService, queryClient: QueryClient) {
+  return {
+    mutationFn: ({ bookId, file }: { bookId: number; file: File }) => booksService.uploadCover(bookId, file),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['books'] });
+    },
+  };
+}
+
+export function deleteBookCoverMutationOptions(booksService: BooksService, queryClient: QueryClient) {
+  return {
+    mutationFn: (bookId: number) => booksService.deleteCover(bookId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['books'] });
+    },
+  };
+}

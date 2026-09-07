@@ -49,4 +49,5 @@ public class BookResponse
     public string AuthorName { get; set; } = string.Empty;
     public int TotalCopies { get; set; }
     public int AvailableCopies { get; set; }
+    public string? CoverImageUrl { get; set; }
 }

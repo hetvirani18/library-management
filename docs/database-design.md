@@ -52,6 +52,7 @@ erDiagram
         text AuthorName
         int TotalCopies
         int AvailableCopies
+        text CoverImagePath "nullable, e.g. /uploads/books/12-abc.png"
     }
 
     BORROWRECORDS {
@@ -166,6 +167,7 @@ CREATE TABLE "Books" (
     "AuthorName" text NOT NULL,
     "TotalCopies" integer NOT NULL,
     "AvailableCopies" integer NOT NULL,
+    "CoverImagePath" text NULL,
     CONSTRAINT "PK_Books" PRIMARY KEY ("BookId")
 );
 

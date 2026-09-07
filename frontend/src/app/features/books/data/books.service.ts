@@ -32,6 +32,11 @@ export class BooksService {
     return PaginatedBooksSchema.parse(result.data).data;
   }
 
+  async getById(bookId: number): Promise<Book> {
+    const result = await this.api.get<unknown>(`/books/${bookId}`);
+    return BookSchema.parse(result.data);
+  }
+
   async create(input: BookInput): Promise<Book> {
     const result = await this.api.post<unknown>('/books', input);
     return BookSchema.parse(result.data);
@@ -44,5 +49,17 @@ export class BooksService {
 
   async delete(bookId: number): Promise<void> {
     await this.api.delete(`/books/${bookId}`);
+  }
+
+  async uploadCover(bookId: number, file: File): Promise<Book> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const result = await this.api.post<unknown>(`/books/${bookId}/cover`, formData);
+    return BookSchema.parse(result.data);
+  }
+
+  async deleteCover(bookId: number): Promise<Book> {
+    const result = await this.api.delete<unknown>(`/books/${bookId}/cover`);
+    return BookSchema.parse(result.data);
   }
 }

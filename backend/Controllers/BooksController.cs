@@ -4,6 +4,7 @@ using LibraryWebApi.DTOs;
 using LibraryWebApi.Models;
 using LibraryWebApi.Repositories;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LibraryWebApi.Controllers;
@@ -13,11 +14,22 @@ namespace LibraryWebApi.Controllers;
 [Authorize]
 public class BooksController : ControllerBase
 {
-    private readonly IBookRepository _bookRepository;
+    private static readonly Dictionary<string, string> AllowedCoverContentTypes = new()
+    {
+        ["image/jpeg"] = ".jpg",
+        ["image/png"] = ".png",
+        ["image/webp"] = ".webp"
+    };
 
-    public BooksController(IBookRepository bookRepository)
+    private const long MaxCoverImageBytes = 5 * 1024 * 1024;
+
+    private readonly IBookRepository _bookRepository;
+    private readonly IWebHostEnvironment _environment;
+
+    public BooksController(IBookRepository bookRepository, IWebHostEnvironment environment)
     {
         _bookRepository = bookRepository;
+        _environment = environment;
     }
 
     [HttpGet]
@@ -107,22 +119,81 @@ public class BooksController : ControllerBase
         return Ok(ApiResponse<BookResponse>.SuccessResponse(ToResponse(book), "Book updated successfully"));
     }
 
+    [HttpPost("{id:int}/cover")]
+    [Authorize(Roles = AuthController.LibrarianRole)]
+    public async Task<IActionResult> UploadCover(int id, IFormFile? file)
+    {
+        var book = await _bookRepository.GetByIdAsync(id) ?? throw Errors.BookNotFound;
+
+        if (file is null || file.Length == 0 || file.Length > MaxCoverImageBytes
+            || !AllowedCoverContentTypes.TryGetValue(file.ContentType, out var extension))
+        {
+            throw Errors.InvalidCoverImage;
+        }
+
+        var uploadsFolder = Path.Combine(_environment.WebRootPath, "uploads", "books");
+        Directory.CreateDirectory(uploadsFolder);
+
+        DeleteCoverFile(book.CoverImagePath);
+
+        var fileName = $"{book.BookId}-{Guid.NewGuid():N}{extension}";
+        await using (var stream = System.IO.File.Create(Path.Combine(uploadsFolder, fileName)))
+        {
+            await file.CopyToAsync(stream);
+        }
+
+        book.CoverImagePath = $"/uploads/books/{fileName}";
+        await _bookRepository.UpdateAsync(book);
+
+        return Ok(ApiResponse<BookResponse>.SuccessResponse(ToResponse(book), "Cover image uploaded successfully"));
+    }
+
+    [HttpDelete("{id:int}/cover")]
+    [Authorize(Roles = AuthController.LibrarianRole)]
+    public async Task<IActionResult> DeleteCover(int id)
+    {
+        var book = await _bookRepository.GetByIdAsync(id) ?? throw Errors.BookNotFound;
+
+        DeleteCoverFile(book.CoverImagePath);
+        book.CoverImagePath = null;
+        await _bookRepository.UpdateAsync(book);
+
+        return Ok(ApiResponse<BookResponse>.SuccessResponse(ToResponse(book), "Cover image removed successfully"));
+    }
+
     [HttpDelete("{id:int}")]
     [Authorize(Roles = AuthController.LibrarianRole)]
     public async Task<IActionResult> Delete(int id)
     {
-        _ = await _bookRepository.GetByIdAsync(id) ?? throw Errors.BookNotFound;
+        var book = await _bookRepository.GetByIdAsync(id) ?? throw Errors.BookNotFound;
 
         if (await _bookRepository.HasBorrowHistoryAsync(id))
         {
             throw Errors.BookHasActiveBorrows;
         }
 
+        DeleteCoverFile(book.CoverImagePath);
         await _bookRepository.DeleteAsync(id);
         return Ok(ApiResponse<object?>.SuccessResponse(null, "Book deleted successfully"));
     }
 
-    private static BookResponse ToResponse(Book book)
+    private void DeleteCoverFile(string? coverImagePath)
+    {
+        if (string.IsNullOrEmpty(coverImagePath))
+        {
+            return;
+        }
+
+        var relativePath = coverImagePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+        var fullPath = Path.Combine(_environment.WebRootPath, relativePath);
+
+        if (System.IO.File.Exists(fullPath))
+        {
+            System.IO.File.Delete(fullPath);
+        }
+    }
+
+    private BookResponse ToResponse(Book book)
     {
         return new BookResponse
         {
@@ -132,7 +203,8 @@ public class BooksController : ControllerBase
             Genre = book.Genre,
             AuthorName = book.AuthorName,
             TotalCopies = book.TotalCopies,
-            AvailableCopies = book.AvailableCopies
+            AvailableCopies = book.AvailableCopies,
+            CoverImageUrl = book.CoverImagePath is null ? null : $"{Request.Scheme}://{Request.Host}{book.CoverImagePath}"
         };
     }
 }

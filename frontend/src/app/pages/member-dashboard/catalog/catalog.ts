@@ -1,4 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { injectQuery } from '@tanstack/angular-query-experimental';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideSearch } from '@ng-icons/lucide';
@@ -9,7 +10,7 @@ import { Book } from '../../../features/books/data/book.types';
 @Component({
   selector: 'app-member-catalog',
   standalone: true,
-  imports: [NgIcon],
+  imports: [NgIcon, RouterLink],
   providers: [provideIcons({ lucideSearch })],
   templateUrl: './catalog.html',
 })

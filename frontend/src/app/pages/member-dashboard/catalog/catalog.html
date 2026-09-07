@@ -31,8 +31,15 @@
 } @else {
   <div class="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
     @for (book of books(); track book.bookId) {
-      <div class="flex gap-3.5 rounded-2xl border border-border bg-card p-5">
-        <div class="h-[70px] w-[52px] shrink-0 rounded bg-gradient-to-br from-primary to-primary-soft"></div>
+      <a
+        [routerLink]="['/member/books', book.bookId]"
+        class="flex gap-3.5 rounded-2xl border border-border bg-card p-5 transition-colors hover:border-primary"
+      >
+        <div class="h-[70px] w-[52px] shrink-0 overflow-hidden rounded bg-gradient-to-br from-primary to-primary-soft">
+          @if (book.coverImageUrl) {
+            <img [src]="book.coverImageUrl" [alt]="book.title" class="h-full w-full object-cover" />
+          }
+        </div>
         <div class="min-w-0">
           <h3 class="truncate text-sm font-semibold">{{ book.title }}</h3>
           <p class="mt-0.5 truncate text-xs text-muted-foreground">{{ book.authorName }}</p>
@@ -45,7 +52,7 @@
             }
           </div>
         </div>
-      </div>
+      </a>
     }
   </div>
 }

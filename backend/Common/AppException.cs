@@ -31,4 +31,5 @@ public static class Errors
     public static readonly AppException NoAvailableCopies = new("No available copies of this book", 30003, 409);
     public static readonly AppException BookNotBorrowed = new("No active borrow record found for this book and member", 30004, 409);
     public static readonly AppException BookHasActiveBorrows = new("Cannot delete a book that has borrow history", 30005, 409);
+    public static readonly AppException InvalidCoverImage = new("Cover image must be a JPEG, PNG, or WEBP file under 5 MB", 30006, 422);
 }

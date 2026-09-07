@@ -52,7 +52,16 @@
       } @else {
         @for (book of books(); track book.bookId) {
           <tr class="hover:bg-muted/30">
-            <td class="px-5 py-4 font-medium">{{ book.title }}</td>
+            <td class="px-5 py-4 font-medium">
+              <a [routerLink]="['/librarian/books', book.bookId]" class="flex items-center gap-3 hover:text-primary">
+                <div class="h-9 w-7 shrink-0 overflow-hidden rounded bg-gradient-to-br from-primary to-primary-soft">
+                  @if (book.coverImageUrl) {
+                    <img [src]="book.coverImageUrl" [alt]="book.title" class="h-full w-full object-cover" />
+                  }
+                </div>
+                {{ book.title }}
+              </a>
+            </td>
             <td class="px-5 py-4 text-muted-foreground">{{ book.authorName }}</td>
             <td class="px-5 py-4 text-muted-foreground">{{ book.genre }}</td>
             <td class="px-5 py-4 text-muted-foreground">{{ book.isbn }}</td>

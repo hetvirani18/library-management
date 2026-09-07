@@ -2,6 +2,7 @@ using System.Text;
 using LibraryWebApi.Data;
 using LibraryWebApi.Middleware;
 using LibraryWebApi.Models;
+using LibraryWebApi.Repositories;
 using LibraryWebApi.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -64,6 +65,9 @@ builder.Services
 
 builder.Services.AddAuthorization();
 builder.Services.AddScoped<TokenService>();
+builder.Services.AddScoped<IBookRepository, BookRepository>();
+builder.Services.AddScoped<IBorrowRecordRepository, BorrowRecordRepository>();
+builder.Services.AddScoped<BorrowService>();
 
 const string frontendCorsPolicy = "Frontend";
 var frontendOrigin = builder.Configuration["Frontend:Origin"] ?? "http://localhost:4200";

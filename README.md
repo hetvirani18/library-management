@@ -176,6 +176,11 @@ On failure, `success` is `false`, `data` is `null`, and `error` holds `{ code, m
 | POST | `/api/auth/login` | No | Log in — sets the `access_token` cookie |
 | POST | `/api/auth/logout` | No | Clears the `access_token` cookie |
 | GET | `/api/auth/me` | Yes | Returns the currently logged-in user's info |
+| GET | `/api/books`, `/api/books/{id}`, `/api/books/available`, `/api/books/genre/{genre}` | Yes | Browse the catalog |
+| POST/PUT/DELETE | `/api/books`, `/api/books/{id}` | Librarian only | Manage the catalog |
+| POST | `/api/borrow`, `/api/borrow/return` | Yes | Borrow / return a book (concurrency-safe, see `docs/backend-architecture.md` §4a) |
+| GET | `/api/borrow/my-history` | Yes | The caller's own borrow history |
+| GET | `/api/borrow/overdue`, `/api/borrow/all`, `/api/borrow/history/{userId}` | Librarian only | System-wide borrow reporting |
 
 ## Roles
 
@@ -186,11 +191,11 @@ without any extra lookup.
 ## What's built so far
 
 ✅ Project scaffolding, database, EF Core migrations, error-handling architecture, full
-authentication flow (register/login/logout/me) with cookie-based JWT.
+authentication flow (register/login/logout/me) with cookie-based JWT, book catalog CRUD, and
+concurrency-safe borrow/return (verified under real concurrent requests — see
+`docs/backend-architecture.md` §4a).
 
-❌ Not yet implemented: `BooksController` (catalog CRUD), `BorrowController`
-(borrow/return/overdue), and the `Repositories/` data-access layer for those two. A `Librarian` can
-currently log in but can't manage books yet; a `Member` can log in but can't borrow anything yet.
+❌ Not yet implemented: `/api/members` for Librarian member management (list/edit/deactivate).
 Full planned endpoint list and build order: `docs/backend-architecture.md`.
 
 See `docs/database-design.md` for the full schema, ER diagram, and design rationale.

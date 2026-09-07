@@ -29,5 +29,5 @@ public static class Errors
     public static readonly AppException MemberNotFound = new("Member not found", 30002, 404);
     public static readonly AppException NoAvailableCopies = new("No available copies of this book", 30003, 409);
     public static readonly AppException BookNotBorrowed = new("No active borrow record found for this book and member", 30004, 409);
-    public static readonly AppException BookHasActiveBorrows = new("Cannot delete a book with copies currently borrowed", 30005, 409);
+    public static readonly AppException BookHasActiveBorrows = new("Cannot delete a book that has borrow history", 30005, 409);
 }

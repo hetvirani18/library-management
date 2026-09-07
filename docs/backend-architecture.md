@@ -27,25 +27,25 @@ backend/
 │                                            # builds the middleware pipeline
 ├── Controllers/
 │   ├── AuthController.cs                   # register, login, logout, me
-│   ├── BooksController.cs                  # [PLANNED] catalog CRUD
-│   └── BorrowController.cs                 # [PLANNED] borrow, return, overdue report, history
+│   ├── BooksController.cs                  # catalog CRUD
+│   └── BorrowController.cs                 # borrow, return, overdue report, history
 ├── Models/                                 # EF Core entities — define the DB schema
 │   ├── ApplicationUser.cs                  # extends IdentityUser: FullName, MembershipDate,
 │   │                                        # IsActive, Role
 │   ├── Book.cs
 │   └── BorrowRecord.cs
 ├── DTOs/
-│   └── AuthDtos.cs                         # RegisterRequest, LoginRequest, AuthResponse
-│   └── BookDtos.cs                         # [PLANNED]
-│   └── BorrowDtos.cs                       # [PLANNED]
+│   ├── AuthDtos.cs                         # RegisterRequest, LoginRequest, AuthResponse
+│   ├── BookDtos.cs                         # CreateBookRequest, UpdateBookRequest, BookResponse
+│   └── BorrowDtos.cs                       # BorrowBookRequest, ReturnBookRequest, BorrowRecordResponse
 ├── Data/
 │   ├── ApplicationDbContext.cs             # DbSets + relationship configuration
 │   └── DbSeeder.cs                         # seeds the default librarian account on startup
-├── Repositories/                           # [PLANNED] data-access layer for Book/BorrowRecord —
-│   │                                        # folder exists, no files yet. AuthController talks
-│   │                                        # directly to Identity's UserManager instead of a
-│   │                                        # repository, since UserManager already *is* the
-│   │                                        # data-access abstraction for AspNetUsers.
+├── Repositories/                           # data-access layer for Book/BorrowRecord.
+│   │                                        # AuthController still talks directly to Identity's
+│   │                                        # UserManager instead of a repository, since
+│   │                                        # UserManager already *is* the data-access
+│   │                                        # abstraction for AspNetUsers.
 │   ├── IBookRepository.cs / BookRepository.cs
 │   └── IBorrowRecordRepository.cs / BorrowRecordRepository.cs
 ├── Common/
@@ -55,7 +55,10 @@ backend/
 │   └── ErrorHandlingMiddleware.cs          # global catch — AppException → typed JSON error;
 │                                            # anything else → generic 500
 ├── Services/
-│   └── TokenService.cs                     # builds and signs the JWT issued on login/register
+│   ├── TokenService.cs                     # builds and signs the JWT issued on login/register
+│   └── BorrowService.cs                    # borrow/return business rules — see §4a for the
+│                                            # transaction + row-locking strategy that prevents
+│                                            # two people borrowing the last copy of a book at once
 ├── Migrations/                             # EF Core's generated migration history
 └── appsettings*.json                       # non-secret config only — see README "Secrets"
 ```
@@ -77,7 +80,7 @@ is put together"). Every response uses the `ApiResponse<T>` envelope.
 | POST | `/logout` | public | Clears the `access_token` cookie |
 | GET | `/me` | authed | Returns the logged-in user's own info, read from the JWT's `sub` claim |
 
-### 3.2 Books — `/api/books` — ❌ planned, not yet built
+### 3.2 Books — `/api/books` — ✅ built
 
 | Method | Path | Access | Purpose |
 |---|---|---|---|
@@ -87,9 +90,9 @@ is put together"). Every response uses the `ApiResponse<T>` envelope.
 | GET | `/genre/:genre` | authed | Filter by genre |
 | POST | `/` | Librarian only | Add a book |
 | PUT | `/:id` | Librarian only | Edit a book's details |
-| DELETE | `/:id` | Librarian only | Remove a book — blocked (`BookHasActiveBorrows`) if any copies are currently checked out |
+| DELETE | `/:id` | Librarian only | Remove a book — blocked (`BookHasActiveBorrows`) if it has any borrow history, active or returned (the DB FK is RESTRICT, not just an app-level check) |
 
-### 3.3 Borrowing — `/api/borrow` — ❌ planned, not yet built
+### 3.3 Borrowing — `/api/borrow` — ✅ built
 
 | Method | Path | Access | Purpose |
 |---|---|---|---|
@@ -151,6 +154,43 @@ role         → user.Role   ("Librarian" | "Member")
 
 ---
 
+## 4a. Concurrency Safety — Borrow/Return
+
+The obvious naive implementation of "borrow a book" — read `AvailableCopies`, check it's `> 0` in
+C#, then write `AvailableCopies - 1` — has a race condition: two concurrent requests can both read
+`AvailableCopies == 1`, both pass the check, and both decrement, leaving the count at `-1` and two
+people holding a "borrowed" record for a book with zero real copies. `BorrowService` avoids this
+with a single atomic conditional `UPDATE`, executed via `ExecuteSqlInterpolatedAsync` in
+`BookRepository.TryDecrementAvailableCopiesAsync`:
+
+```sql
+UPDATE "Books" SET "AvailableCopies" = "AvailableCopies" - 1
+WHERE "BookId" = @bookId AND "AvailableCopies" > 0
+```
+
+PostgreSQL takes a row lock on the matched `Books` row for the statement's duration. If two
+requests hit this at the same moment, the second blocks until the first's transaction commits (or
+rolls back), then re-evaluates `WHERE "AvailableCopies" > 0` against the now-updated row — so if
+the first request took the last copy, the second's `WHERE` clause fails and the statement affects
+**0 rows**. `BorrowService.BorrowBookAsync` checks that rows-affected count and throws
+`Errors.NoAvailableCopies` when it's 0. No separate `SELECT ... FOR UPDATE` is needed — the
+conditional `UPDATE` *is* the lock.
+
+This runs inside an explicit `_context.Database.BeginTransactionAsync()`, alongside the
+`BorrowRecord` insert, so a failure partway through (e.g. the insert fails after a successful
+decrement) rolls back both together rather than leaving `AvailableCopies` decremented with no
+matching record. `ReturnBookAsync` uses the identical pattern in reverse — a conditional `UPDATE`
+on `BorrowRecords` (`SET "ReturnedAt" = now() WHERE "RecordId" = @id AND "ReturnedAt" IS NULL`) so
+two concurrent "return" calls for the same borrow can't both succeed and double-increment
+`AvailableCopies`.
+
+Verified under real concurrency, not just reasoned about: two members were registered, a book was
+seeded with `TotalCopies = 1`, and two genuinely parallel `POST /api/borrow` requests were fired
+at once. One received `200` and the borrow record; the other received `409 NoAvailableCopies`; the
+book's `AvailableCopies` landed at exactly `0`, never `-1`.
+
+---
+
 ## 5. Error Catalog
 
 `1xxxx` common, `2xxxx` auth, `3xxxx` library domain — same numbering convention as GlobeTrotter's
@@ -172,7 +212,7 @@ Errors.SomeError;` — never construct an `AppException` inline.
 | 30002 | `MemberNotFound` | 404 | Invalid member/user ID |
 | 30003 | `NoAvailableCopies` | 409 | Borrow attempted with `AvailableCopies == 0` |
 | 30004 | `BookNotBorrowed` | 409 | Return attempted with no matching active borrow record |
-| 30005 | `BookHasActiveBorrows` | 409 | Delete-book attempted while copies are checked out |
+| 30005 | `BookHasActiveBorrows` | 409 | Delete-book attempted on a book with any borrow history (RESTRICT FK, not just active borrows) |
 
 Every code above already exists in `Common/AppException.cs`, whether or not the endpoint that
 throws it has been built yet (`30001`–`30005` are ready and waiting for `BooksController`/
@@ -195,8 +235,8 @@ endpoint's success response.
 1. ~~Skeleton~~ — Program.cs, Common/ (AppException + ApiResponse), Middleware/ErrorHandlingMiddleware — **done**
 2. ~~Database + migrations~~ — Models/, ApplicationDbContext, InitialCreate + SwitchToRoleColumn migrations — **done**
 3. ~~Auth~~ — register/login/logout/me, JWT as an `HttpOnly` cookie, role claim, CORS for the future frontend — **done**
-4. **Repositories** — `IBookRepository`/`BookRepository`, `IBorrowRecordRepository`/`BorrowRecordRepository`, matching the generic `IRepository<T>` pattern already used in the `LibraryManagementSystem` console project
-5. **Books** — `BooksController` (§3.2), Librarian-only writes via `[Authorize(Roles = "Librarian")]`
-6. **Borrowing** — `BorrowController` (§3.3): borrow/return business rules (no available copies, not borrowed, active-member check), overdue report, history
+4. ~~Repositories~~ — `IBookRepository`/`BookRepository`, `IBorrowRecordRepository`/`BorrowRecordRepository` — **done**
+5. ~~Books~~ — `BooksController` (§3.2), Librarian-only writes via `[Authorize(Roles = "Librarian")]` — **done**
+6. ~~Borrowing~~ — `BorrowController` (§3.3) + `BorrowService`: borrow/return with transaction + row-locking (§4a), overdue report, history — **done**
 7. **Members** — `/api/members` (§3.4) for Librarian member management
 8. **Frontend** — Angular app in `frontend/`, wired against everything above

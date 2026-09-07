@@ -1,13 +1,15 @@
 # LibraryWebApp
 
 A full-stack Library Management System: a librarian manages the book catalog and members; a
-member browses books, borrows and returns them, and sees their own history. This repo currently
-holds the **backend** (`backend/`) — an authenticated REST API. An Angular frontend will live
-alongside it in a `frontend/` folder once built.
+member browses books, borrows and returns them, and sees their own history. `backend/` is an
+authenticated REST API (ASP.NET Core); `frontend/` is the Angular app that talks to it.
 
 - **This file** — what the project is, how to set it up and run it.
 - **`docs/backend-architecture.md`** — the full backend design: every module, every endpoint (built
   and planned), the error-code catalog, the auth mechanism, and the remaining build order.
+- **`docs/frontend-architecture.md`** — the Angular architecture guide: folder structure, state
+  ownership (TanStack Query vs. signals vs. forms), the API client, styling rules, and how it
+  differs from a React/Next.js setup.
 - **`docs/database-design.md`** — the database schema, ER diagram, and the reasoning behind each
   design decision.
 
@@ -207,3 +209,31 @@ without any extra lookup.
 
 See `docs/backend-architecture.md` for the full endpoint list and build order, and
 `docs/database-design.md` for the schema, ER diagram, and design rationale.
+
+---
+
+## Frontend
+
+Angular 22, standalone components + Signals, Tailwind v4, TanStack Angular Query for server
+state, Zod for API response validation, AOS for scroll animations. Full architecture and
+conventions: `docs/frontend-architecture.md`.
+
+### Setup & run
+
+```bash
+cd frontend
+npm install
+npm start          # ng serve — http://localhost:4200
+```
+
+The API base URL is set in `src/app/types/constants.ts` (`API_BASE_URL`) — update it if the
+backend isn't running on `http://localhost:5200`.
+
+### What's built so far
+
+The home page (`pages/home/`) with AOS scroll animations, and the core architecture skeleton:
+`ApiClient` (matches the backend's `ApiResponse<T>`/`Paginated<T>` envelope exactly, uses
+`withCredentials: true` — no token in `localStorage`, the cookie is `HttpOnly` on purpose, see
+`docs/frontend-architecture.md` §0), a signal-based `AuthService`, route guards, and TanStack
+Query wired into `app.config.ts`. `/login` and `/register` are route stubs — the actual auth UI
+and every feature screen (book catalog, borrowing, member management, dashboard) are next.

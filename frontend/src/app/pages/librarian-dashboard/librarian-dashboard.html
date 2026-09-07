@@ -1,37 +1,20 @@
 <div class="min-h-screen bg-background text-foreground">
-  <app-dashboard-header />
+  <app-dashboard-header>
+    <nav tabs class="flex items-center gap-1">
+      @for (tab of tabs; track tab.path) {
+        <a
+          [routerLink]="tab.path"
+          routerLinkActive="bg-muted text-foreground"
+          [routerLinkActiveOptions]="{ exact: tab.exact }"
+          class="rounded-lg px-3.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+        >
+          {{ tab.label }}
+        </a>
+      }
+    </nav>
+  </app-dashboard-header>
 
   <main class="mx-auto max-w-6xl px-6 py-12">
-    @if (auth.currentUser(); as user) {
-      <h1 class="font-serif text-3xl font-medium italic tracking-tight">Welcome back, {{ user.fullName }}</h1>
-      <p class="mt-2 text-muted-foreground">Here's how the library looks today.</p>
-    }
-
-    @if (isLoading()) {
-      <div class="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        @for (i of [1, 2, 3, 4]; track i) {
-          <div class="h-28 animate-pulse rounded-2xl border border-border bg-card"></div>
-        }
-      </div>
-    } @else if (isError()) {
-      <div class="mt-10 rounded-xl border border-destructive/30 bg-destructive/10 px-5 py-4 text-sm text-destructive">
-        Couldn't load dashboard stats. Try refreshing the page.
-      </div>
-    } @else {
-      <div class="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        @for (card of cards(); track card.label) {
-          <div class="rounded-2xl border border-border bg-card p-6">
-            <div class="text-3xl font-semibold">{{ card.value }}</div>
-            <div class="mt-1.5 text-sm text-muted-foreground">{{ card.label }}</div>
-          </div>
-        }
-      </div>
-    }
-
-    <div class="mt-14 rounded-2xl border border-border bg-card p-8 text-center">
-      <p class="text-sm text-muted-foreground">
-        Book catalog and member management screens are coming next.
-      </p>
-    </div>
+    <router-outlet />
   </main>
 </div>

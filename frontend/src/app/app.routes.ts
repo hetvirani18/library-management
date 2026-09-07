@@ -3,6 +3,10 @@ import { HomeComponent } from './pages/home/home';
 import { LoginComponent } from './pages/login/login';
 import { RegisterComponent } from './pages/register/register';
 import { LibrarianDashboardComponent } from './pages/librarian-dashboard/librarian-dashboard';
+import { LibrarianOverviewComponent } from './pages/librarian-dashboard/overview/overview';
+import { LibrarianBooksComponent } from './pages/librarian-dashboard/books/books';
+import { LibrarianMembersComponent } from './pages/librarian-dashboard/members/members';
+import { LibrarianBorrowsComponent } from './pages/librarian-dashboard/borrows/borrows';
 import { MemberDashboardComponent } from './pages/member-dashboard/member-dashboard';
 import { authGuard, guestGuard, roleGuard } from './core/auth/auth.guard';
 
@@ -14,6 +18,12 @@ export const routes: Routes = [
     path: 'librarian',
     component: LibrarianDashboardComponent,
     canActivate: [authGuard, roleGuard('Librarian')],
+    children: [
+      { path: '', component: LibrarianOverviewComponent },
+      { path: 'books', component: LibrarianBooksComponent },
+      { path: 'members', component: LibrarianMembersComponent },
+      { path: 'borrows', component: LibrarianBorrowsComponent },
+    ],
   },
   {
     path: 'member',

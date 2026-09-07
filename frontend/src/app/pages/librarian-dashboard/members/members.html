@@ -1,0 +1,201 @@
+<div class="flex flex-wrap items-center justify-between gap-4">
+  <div>
+    <h1 class="font-serif text-3xl font-medium italic tracking-tight">Members</h1>
+    <p class="mt-2 text-muted-foreground">Manage member accounts and access.</p>
+  </div>
+  <app-button (click)="openCreate()">
+    <ng-icon name="lucideUserPlus" size="16" class="mr-1.5" />
+    Add member
+  </app-button>
+</div>
+
+<div class="mt-8 overflow-x-auto rounded-2xl border border-border">
+  <table class="w-full min-w-[640px] text-left text-sm">
+    <thead class="border-b border-border bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
+      <tr>
+        <th class="px-5 py-3 font-medium">Name</th>
+        <th class="px-5 py-3 font-medium">Email</th>
+        <th class="px-5 py-3 font-medium">Member since</th>
+        <th class="px-5 py-3 font-medium">Status</th>
+        <th class="px-5 py-3 font-medium"></th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-border">
+      @if (isLoading()) {
+        @for (i of [1, 2, 3, 4, 5]; track i) {
+          <tr>
+            <td class="px-5 py-4" colspan="5">
+              <div class="h-4 w-full max-w-sm animate-pulse rounded bg-muted"></div>
+            </td>
+          </tr>
+        }
+      } @else if (isError()) {
+        <tr>
+          <td class="px-5 py-6 text-center text-destructive" colspan="5">Couldn't load members. Try refreshing.</td>
+        </tr>
+      } @else if (members().length === 0) {
+        <tr>
+          <td class="px-5 py-6 text-center text-muted-foreground" colspan="5">No members found.</td>
+        </tr>
+      } @else {
+        @for (member of members(); track member.userId) {
+          <tr class="hover:bg-muted/30">
+            <td class="px-5 py-4 font-medium">{{ member.fullName }}</td>
+            <td class="px-5 py-4 text-muted-foreground">{{ member.email }}</td>
+            <td class="px-5 py-4 text-muted-foreground">{{ member.membershipDate | date: 'mediumDate' }}</td>
+            <td class="px-5 py-4">
+              @if (member.isActive) {
+                <span class="rounded-full bg-primary/15 px-2.5 py-1 text-xs font-medium text-primary">Active</span>
+              } @else {
+                <span class="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">Inactive</span>
+              }
+            </td>
+            <td class="px-5 py-4">
+              <div class="flex items-center justify-end gap-1">
+                <button
+                  type="button"
+                  (click)="openEdit(member)"
+                  class="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
+                  aria-label="Edit member"
+                >
+                  <ng-icon name="lucidePencil" size="16" />
+                </button>
+                <button
+                  type="button"
+                  (click)="openResetPassword(member)"
+                  class="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
+                  aria-label="Reset password"
+                >
+                  <ng-icon name="lucideKeyRound" size="16" />
+                </button>
+                <button
+                  type="button"
+                  [disabled]="togglingId() === member.userId"
+                  (click)="toggleActive(member)"
+                  class="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50"
+                  [attr.aria-label]="member.isActive ? 'Deactivate member' : 'Activate member'"
+                >
+                  <ng-icon [name]="member.isActive ? 'lucideBan' : 'lucideCheck'" size="16" />
+                </button>
+              </div>
+            </td>
+          </tr>
+        }
+      }
+    </tbody>
+  </table>
+</div>
+
+@if (hasPrev() || hasNext()) {
+  <div class="mt-5 flex items-center justify-end gap-2">
+    <app-button variant="outline" [disabled]="!hasPrev()" (click)="prevPage()">Previous</app-button>
+    <app-button variant="outline" [disabled]="!hasNext()" (click)="nextPage()">Next</app-button>
+  </div>
+}
+
+@if (isModalOpen()) {
+  <app-modal [title]="editingMember() ? 'Edit member' : 'Add member'" (close)="closeModal()">
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      @if (errorMessage()) {
+        <div class="mb-5 rounded-lg border border-destructive/30 bg-destructive/10 px-3.5 py-2.5 text-sm text-destructive">
+          {{ errorMessage() }}
+        </div>
+      }
+
+      <div class="mb-4">
+        <label for="fullName" class="mb-1.5 block text-sm font-medium">Full name</label>
+        <input
+          id="fullName"
+          type="text"
+          formControlName="fullName"
+          placeholder="Jane Doe"
+          class="w-full rounded-lg border border-border bg-background px-3.5 py-2.5 text-sm outline-none placeholder:text-muted-foreground/60 focus:border-primary"
+        />
+      </div>
+
+      <div class="mb-4">
+        <label for="email" class="mb-1.5 block text-sm font-medium">Email</label>
+        <input
+          id="email"
+          type="email"
+          formControlName="email"
+          placeholder="you@example.com"
+          class="w-full rounded-lg border border-border bg-background px-3.5 py-2.5 text-sm outline-none placeholder:text-muted-foreground/60 focus:border-primary"
+        />
+      </div>
+
+      @if (!editingMember()) {
+        <div class="mb-6">
+          <label for="password" class="mb-1.5 block text-sm font-medium">Password</label>
+          <div class="relative">
+            <input
+              id="password"
+              [type]="showPassword() ? 'text' : 'password'"
+              formControlName="password"
+              placeholder="At least 6 characters"
+              class="w-full rounded-lg border border-border bg-background px-3.5 py-2.5 pr-10 text-sm outline-none placeholder:text-muted-foreground/60 focus:border-primary"
+            />
+            <button
+              type="button"
+              (click)="showPassword.set(!showPassword())"
+              class="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-muted-foreground hover:text-foreground"
+              [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+            >
+              <ng-icon [name]="showPassword() ? 'lucideEyeOff' : 'lucideEye'" size="18" />
+            </button>
+          </div>
+        </div>
+      }
+
+      <button
+        type="submit"
+        [disabled]="isSubmitting()"
+        class="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-opacity disabled:opacity-60"
+      >
+        {{ isSubmitting() ? 'Saving…' : editingMember() ? 'Save changes' : 'Add member' }}
+      </button>
+    </form>
+  </app-modal>
+}
+
+@if (resetTarget(); as target) {
+  <app-modal title="Reset password" (close)="closeResetModal()">
+    <p class="mb-5 text-sm text-muted-foreground">Set a new password for <strong class="text-foreground">{{ target.fullName }}</strong>.</p>
+    <form [formGroup]="resetForm" (ngSubmit)="submitReset()">
+      @if (resetErrorMessage()) {
+        <div class="mb-5 rounded-lg border border-destructive/30 bg-destructive/10 px-3.5 py-2.5 text-sm text-destructive">
+          {{ resetErrorMessage() }}
+        </div>
+      }
+
+      <div class="mb-6">
+        <label for="newPassword" class="mb-1.5 block text-sm font-medium">New password</label>
+        <div class="relative">
+          <input
+            id="newPassword"
+            [type]="showResetPassword() ? 'text' : 'password'"
+            formControlName="newPassword"
+            placeholder="At least 6 characters"
+            class="w-full rounded-lg border border-border bg-background px-3.5 py-2.5 pr-10 text-sm outline-none placeholder:text-muted-foreground/60 focus:border-primary"
+          />
+          <button
+            type="button"
+            (click)="showResetPassword.set(!showResetPassword())"
+            class="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-muted-foreground hover:text-foreground"
+            [attr.aria-label]="showResetPassword() ? 'Hide password' : 'Show password'"
+          >
+            <ng-icon [name]="showResetPassword() ? 'lucideEyeOff' : 'lucideEye'" size="18" />
+          </button>
+        </div>
+      </div>
+
+      <button
+        type="submit"
+        [disabled]="isResetting()"
+        class="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-opacity disabled:opacity-60"
+      >
+        {{ isResetting() ? 'Resetting…' : 'Reset password' }}
+      </button>
+    </form>
+  </app-modal>
+}

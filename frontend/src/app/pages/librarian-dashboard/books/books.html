@@ -1,0 +1,171 @@
+<div class="flex flex-wrap items-center justify-between gap-4">
+  <div>
+    <h1 class="font-serif text-3xl font-medium italic tracking-tight">Books</h1>
+    <p class="mt-2 text-muted-foreground">Manage the catalog: add, edit, or remove titles.</p>
+  </div>
+  <app-button (click)="openCreate()">
+    <ng-icon name="lucidePlus" size="16" class="mr-1.5" />
+    Add book
+  </app-button>
+</div>
+
+<div class="relative mt-8 max-w-sm">
+  <ng-icon name="lucideSearch" size="16" class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+  <input
+    type="text"
+    placeholder="Search by title, author, or ISBN"
+    [value]="search()"
+    (input)="onSearchChange($any($event.target).value)"
+    class="w-full rounded-lg border border-border bg-background py-2.5 pl-10 pr-3.5 text-sm outline-none placeholder:text-muted-foreground/60 focus:border-primary"
+  />
+</div>
+
+<div class="mt-6 overflow-x-auto rounded-2xl border border-border">
+  <table class="w-full min-w-[640px] text-left text-sm">
+    <thead class="border-b border-border bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
+      <tr>
+        <th class="px-5 py-3 font-medium">Title</th>
+        <th class="px-5 py-3 font-medium">Author</th>
+        <th class="px-5 py-3 font-medium">Genre</th>
+        <th class="px-5 py-3 font-medium">ISBN</th>
+        <th class="px-5 py-3 font-medium">Copies</th>
+        <th class="px-5 py-3 font-medium"></th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-border">
+      @if (isLoading()) {
+        @for (i of [1, 2, 3, 4, 5]; track i) {
+          <tr>
+            <td class="px-5 py-4" colspan="6">
+              <div class="h-4 w-full max-w-sm animate-pulse rounded bg-muted"></div>
+            </td>
+          </tr>
+        }
+      } @else if (isError()) {
+        <tr>
+          <td class="px-5 py-6 text-center text-destructive" colspan="6">Couldn't load books. Try refreshing.</td>
+        </tr>
+      } @else if (books().length === 0) {
+        <tr>
+          <td class="px-5 py-6 text-center text-muted-foreground" colspan="6">No books found.</td>
+        </tr>
+      } @else {
+        @for (book of books(); track book.bookId) {
+          <tr class="hover:bg-muted/30">
+            <td class="px-5 py-4 font-medium">{{ book.title }}</td>
+            <td class="px-5 py-4 text-muted-foreground">{{ book.authorName }}</td>
+            <td class="px-5 py-4 text-muted-foreground">{{ book.genre }}</td>
+            <td class="px-5 py-4 text-muted-foreground">{{ book.isbn }}</td>
+            <td class="px-5 py-4">
+              <span class="rounded-full bg-muted px-2.5 py-1 text-xs">{{ book.availableCopies }} / {{ book.totalCopies }}</span>
+            </td>
+            <td class="px-5 py-4">
+              <div class="flex items-center justify-end gap-1">
+                <button
+                  type="button"
+                  (click)="openEdit(book)"
+                  class="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
+                  aria-label="Edit book"
+                >
+                  <ng-icon name="lucidePencil" size="16" />
+                </button>
+                <button
+                  type="button"
+                  [disabled]="deletingId() === book.bookId"
+                  (click)="deleteBook(book)"
+                  class="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+                  aria-label="Delete book"
+                >
+                  <ng-icon name="lucideTrash2" size="16" />
+                </button>
+              </div>
+            </td>
+          </tr>
+        }
+      }
+    </tbody>
+  </table>
+</div>
+
+@if (hasPrev() || hasNext()) {
+  <div class="mt-5 flex items-center justify-end gap-2">
+    <app-button variant="outline" [disabled]="!hasPrev()" (click)="prevPage()">Previous</app-button>
+    <app-button variant="outline" [disabled]="!hasNext()" (click)="nextPage()">Next</app-button>
+  </div>
+}
+
+@if (isModalOpen()) {
+  <app-modal [title]="editingBook() ? 'Edit book' : 'Add book'" (close)="closeModal()">
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      @if (errorMessage()) {
+        <div class="mb-5 rounded-lg border border-destructive/30 bg-destructive/10 px-3.5 py-2.5 text-sm text-destructive">
+          {{ errorMessage() }}
+        </div>
+      }
+
+      <div class="mb-4">
+        <label for="title" class="mb-1.5 block text-sm font-medium">Title</label>
+        <input
+          id="title"
+          type="text"
+          formControlName="title"
+          placeholder="The Pragmatic Programmer"
+          class="w-full rounded-lg border border-border bg-background px-3.5 py-2.5 text-sm outline-none placeholder:text-muted-foreground/60 focus:border-primary"
+        />
+      </div>
+
+      <div class="mb-4">
+        <label for="authorName" class="mb-1.5 block text-sm font-medium">Author</label>
+        <input
+          id="authorName"
+          type="text"
+          formControlName="authorName"
+          placeholder="David Thomas"
+          class="w-full rounded-lg border border-border bg-background px-3.5 py-2.5 text-sm outline-none placeholder:text-muted-foreground/60 focus:border-primary"
+        />
+      </div>
+
+      <div class="mb-4 grid grid-cols-2 gap-3">
+        <div>
+          <label for="genre" class="mb-1.5 block text-sm font-medium">Genre</label>
+          <input
+            id="genre"
+            type="text"
+            formControlName="genre"
+            placeholder="Software"
+            class="w-full rounded-lg border border-border bg-background px-3.5 py-2.5 text-sm outline-none placeholder:text-muted-foreground/60 focus:border-primary"
+          />
+        </div>
+        <div>
+          <label for="isbn" class="mb-1.5 block text-sm font-medium">ISBN</label>
+          <input
+            id="isbn"
+            type="text"
+            formControlName="isbn"
+            placeholder="978-0135957059"
+            class="w-full rounded-lg border border-border bg-background px-3.5 py-2.5 text-sm outline-none placeholder:text-muted-foreground/60 focus:border-primary"
+          />
+        </div>
+      </div>
+
+      <div class="mb-6">
+        <label for="totalCopies" class="mb-1.5 block text-sm font-medium">Total copies</label>
+        <input
+          id="totalCopies"
+          type="number"
+          min="0"
+          formControlName="totalCopies"
+          class="w-full rounded-lg border border-border bg-background px-3.5 py-2.5 text-sm outline-none focus:border-primary"
+        />
+      </div>
+
+      <button
+        type="submit"
+        [disabled]="isSubmitting()"
+        class="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-opacity disabled:opacity-60"
+      >
+        {{ isSubmitting() ? 'Saving…' : editingBook() ? 'Save changes' : 'Add book' }}
+      </button>
+    </form>
+  </app-modal>
+}

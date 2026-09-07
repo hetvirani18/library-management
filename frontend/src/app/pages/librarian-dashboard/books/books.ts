@@ -3,8 +3,14 @@ import { RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { QueryClient, injectMutation, injectQuery } from '@tanstack/angular-query-experimental';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucidePlus, lucidePencil, lucideTrash2, lucideSearch } from '@ng-icons/lucide';
-import { booksQueryOptions, createBookMutationOptions, deleteBookMutationOptions, updateBookMutationOptions } from '../../../features/books/queries/books.queries';
+import { lucidePlus, lucidePencil, lucideTrash2, lucideSearch, lucideUpload } from '@ng-icons/lucide';
+import {
+  booksQueryOptions,
+  createBookMutationOptions,
+  deleteBookMutationOptions,
+  updateBookMutationOptions,
+  uploadBookCoverMutationOptions,
+} from '../../../features/books/queries/books.queries';
 import { BooksService } from '../../../features/books/data/books.service';
 import { Book, BookInput } from '../../../features/books/data/book.types';
 import { RequestError } from '../../../core/api/api-response.types';
@@ -15,7 +21,7 @@ import { ButtonComponent } from '../../../shared/ui/button/button';
   selector: 'app-librarian-books',
   standalone: true,
   imports: [ReactiveFormsModule, NgIcon, ModalComponent, ButtonComponent, RouterLink],
-  providers: [provideIcons({ lucidePlus, lucidePencil, lucideTrash2, lucideSearch })],
+  providers: [provideIcons({ lucidePlus, lucidePencil, lucideTrash2, lucideSearch, lucideUpload })],
   templateUrl: './books.html',
 })
 export class LibrarianBooksComponent {
@@ -40,12 +46,16 @@ export class LibrarianBooksComponent {
   private readonly createMutation = injectMutation(() => createBookMutationOptions(this.booksService, this.queryClient));
   private readonly updateMutation = injectMutation(() => updateBookMutationOptions(this.booksService, this.queryClient));
   private readonly deleteMutation = injectMutation(() => deleteBookMutationOptions(this.booksService, this.queryClient));
+  private readonly uploadCoverMutation = injectMutation(() => uploadBookCoverMutationOptions(this.booksService, this.queryClient));
 
   protected readonly isModalOpen = signal(false);
   protected readonly editingBook = signal<Book | null>(null);
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly isSubmitting = signal(false);
   protected readonly deletingId = signal<number | null>(null);
+
+  protected readonly coverFile = signal<File | null>(null);
+  protected readonly coverPreviewUrl = signal<string | null>(null);
 
   protected readonly form = this.fb.nonNullable.group({
     title: ['', Validators.required],
@@ -79,6 +89,7 @@ export class LibrarianBooksComponent {
   openCreate(): void {
     this.editingBook.set(null);
     this.errorMessage.set(null);
+    this.resetCover(null);
     this.form.reset({ title: '', isbn: '', genre: '', authorName: '', totalCopies: 1 });
     this.isModalOpen.set(true);
   }
@@ -86,6 +97,7 @@ export class LibrarianBooksComponent {
   openEdit(book: Book): void {
     this.editingBook.set(book);
     this.errorMessage.set(null);
+    this.resetCover(book.coverImageUrl);
     this.form.reset({
       title: book.title,
       isbn: book.isbn,
@@ -100,6 +112,28 @@ export class LibrarianBooksComponent {
     this.isModalOpen.set(false);
   }
 
+  onCoverSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    if (!file) return;
+
+    this.coverFile.set(file);
+    const previous = this.coverPreviewUrl();
+    if (previous?.startsWith('blob:')) {
+      URL.revokeObjectURL(previous);
+    }
+    this.coverPreviewUrl.set(URL.createObjectURL(file));
+  }
+
+  private resetCover(existingUrl: string | null): void {
+    const previous = this.coverPreviewUrl();
+    if (previous?.startsWith('blob:')) {
+      URL.revokeObjectURL(previous);
+    }
+    this.coverFile.set(null);
+    this.coverPreviewUrl.set(existingUrl);
+  }
+
   async submit(): Promise<void> {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -112,11 +146,15 @@ export class LibrarianBooksComponent {
     const editing = this.editingBook();
 
     try {
-      if (editing) {
-        await this.updateMutation.mutateAsync({ bookId: editing.bookId, input });
-      } else {
-        await this.createMutation.mutateAsync(input);
+      const book = editing
+        ? await this.updateMutation.mutateAsync({ bookId: editing.bookId, input })
+        : await this.createMutation.mutateAsync(input);
+
+      const file = this.coverFile();
+      if (file) {
+        await this.uploadCoverMutation.mutateAsync({ bookId: book.bookId, file });
       }
+
       this.isModalOpen.set(false);
     } catch (error) {
       this.errorMessage.set(error instanceof RequestError ? error.message : 'Something went wrong. Please try again.');

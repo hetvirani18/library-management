@@ -12,17 +12,17 @@ import {
 import { BorrowService, BorrowListView } from '../../../features/borrow/data/borrow.service';
 import { BorrowRecord } from '../../../features/borrow/data/borrow.types';
 import { BooksService } from '../../../features/books/data/books.service';
-import { Book } from '../../../features/books/data/book.types';
 import { MembersService } from '../../../features/members/data/members.service';
 import { Member } from '../../../features/members/data/member.types';
 import { RequestError } from '../../../core/api/api-response.types';
 import { ModalComponent } from '../../../shared/ui/modal/modal';
 import { ButtonComponent } from '../../../shared/ui/button/button';
+import { ComboboxComponent, ComboboxOption } from '../../../shared/ui/combobox/combobox';
 
 @Component({
   selector: 'app-librarian-borrows',
   standalone: true,
-  imports: [ReactiveFormsModule, NgIcon, ModalComponent, ButtonComponent, DatePipe],
+  imports: [ReactiveFormsModule, NgIcon, ModalComponent, ButtonComponent, DatePipe, ComboboxComponent],
   providers: [provideIcons({ lucideBookPlus, lucideUndo2 })],
   templateUrl: './borrows.html',
 })
@@ -55,9 +55,16 @@ export class LibrarianBorrowsComponent {
   protected readonly isSubmitting = signal(false);
   protected readonly returningId = signal<number | null>(null);
 
-  protected readonly availableBooks = signal<Book[]>([]);
   protected readonly activeMembers = signal<Member[]>([]);
   protected readonly isLoadingOptions = signal(false);
+
+  protected readonly bookOptions = signal<ComboboxOption[]>([]);
+  protected readonly isSearchingBooks = signal(false);
+  private bookSearchTimeout?: ReturnType<typeof setTimeout>;
+
+  protected readonly memberOptions = computed<ComboboxOption[]>(() =>
+    this.activeMembers().map((member) => ({ value: member.userId, label: member.fullName, sublabel: member.email })),
+  );
 
   protected readonly form = this.fb.nonNullable.group({
     bookId: ['', Validators.required],
@@ -93,16 +100,35 @@ export class LibrarianBorrowsComponent {
 
     try {
       const [books, members] = await Promise.all([
-        this.booksService.listAvailable(),
+        this.booksService.searchAvailable(''),
         this.membersService.listActive(),
       ]);
-      this.availableBooks.set(books);
+      this.bookOptions.set(books.map(this.toBookOption));
       this.activeMembers.set(members);
     } catch {
       this.errorMessage.set('Could not load books and members. Try again.');
     } finally {
       this.isLoadingOptions.set(false);
     }
+  }
+
+  onBookSearch(query: string): void {
+    clearTimeout(this.bookSearchTimeout);
+    this.bookSearchTimeout = setTimeout(async () => {
+      this.isSearchingBooks.set(true);
+      try {
+        const books = await this.booksService.searchAvailable(query);
+        this.bookOptions.set(books.map(this.toBookOption));
+      } catch {
+        this.bookOptions.set([]);
+      } finally {
+        this.isSearchingBooks.set(false);
+      }
+    }, 300);
+  }
+
+  private toBookOption(book: { bookId: number; title: string; availableCopies: number }): ComboboxOption {
+    return { value: String(book.bookId), label: book.title, sublabel: `${book.availableCopies} available` };
   }
 
   closeModal(): void {

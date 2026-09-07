@@ -113,31 +113,26 @@
         }
 
         <div class="mb-4">
-          <label for="bookId" class="mb-1.5 block text-sm font-medium">Book</label>
-          <select
-            id="bookId"
+          <label class="mb-1.5 block text-sm font-medium">Book</label>
+          <app-combobox
             formControlName="bookId"
-            class="w-full rounded-lg border border-border bg-background px-3.5 py-2.5 text-sm outline-none focus:border-primary"
-          >
-            <option value="" disabled>Select an available book</option>
-            @for (book of availableBooks(); track book.bookId) {
-              <option [value]="book.bookId">{{ book.title }} ({{ book.availableCopies }} available)</option>
-            }
-          </select>
+            [options]="bookOptions()"
+            [loading]="isSearchingBooks()"
+            placeholder="Search available books by title or author"
+            emptyText="No available books found"
+            (search)="onBookSearch($event)"
+          />
         </div>
 
         <div class="mb-6">
-          <label for="memberId" class="mb-1.5 block text-sm font-medium">Member</label>
-          <select
-            id="memberId"
+          <label class="mb-1.5 block text-sm font-medium">Member</label>
+          <app-combobox
             formControlName="memberId"
-            class="w-full rounded-lg border border-border bg-background px-3.5 py-2.5 text-sm outline-none focus:border-primary"
-          >
-            <option value="" disabled>Select a member</option>
-            @for (member of activeMembers(); track member.userId) {
-              <option [value]="member.userId">{{ member.fullName }} ({{ member.email }})</option>
-            }
-          </select>
+            [options]="memberOptions()"
+            [filterLocally]="true"
+            placeholder="Search members by name or email"
+            emptyText="No members found"
+          />
         </div>
 
         <button

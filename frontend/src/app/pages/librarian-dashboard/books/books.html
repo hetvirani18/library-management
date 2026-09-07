@@ -112,6 +112,23 @@
         </div>
       }
 
+      <div class="mb-4 flex items-center gap-3.5">
+        <div class="h-[70px] w-[52px] shrink-0 overflow-hidden rounded-lg border border-border bg-muted">
+          @if (coverPreviewUrl()) {
+            <img [src]="coverPreviewUrl()" alt="Cover preview" class="h-full w-full object-cover" />
+          } @else {
+            <div class="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary to-primary-soft"></div>
+          }
+        </div>
+        <label
+          class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-border px-3.5 py-2 text-xs font-medium transition-colors hover:bg-muted"
+        >
+          <ng-icon name="lucideUpload" size="14" />
+          {{ coverFile() ? 'Change cover' : 'Upload cover' }}
+          <input type="file" accept="image/png,image/jpeg,image/webp" class="hidden" (change)="onCoverSelected($event)" />
+        </label>
+      </div>
+
       <div class="mb-4">
         <label for="title" class="mb-1.5 block text-sm font-medium">Title</label>
         <input

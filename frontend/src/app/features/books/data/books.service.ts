@@ -32,6 +32,19 @@ export class BooksService {
     return PaginatedBooksSchema.parse(result.data).data;
   }
 
+  /** Available copies matching a search term, or the top available titles when the term is empty. */
+  async searchAvailable(query: string, limit = 20): Promise<Book[]> {
+    if (!query.trim()) {
+      return this.listAvailable(limit);
+    }
+
+    const params = new URLSearchParams({ q: query.trim(), cursor: '0', limit: '50' });
+    const result = await this.api.get<unknown>(`/books/search?${params}`);
+    return PaginatedBooksSchema.parse(result.data)
+      .data.filter((book) => book.availableCopies > 0)
+      .slice(0, limit);
+  }
+
   async getById(bookId: number): Promise<Book> {
     const result = await this.api.get<unknown>(`/books/${bookId}`);
     return BookSchema.parse(result.data);

@@ -1,0 +1,35 @@
+<div class="relative">
+  <input
+    type="text"
+    [value]="displayValue()"
+    [placeholder]="placeholder()"
+    [disabled]="isDisabled()"
+    (focus)="open()"
+    (input)="onInput($any($event.target).value)"
+    class="w-full rounded-lg border border-border bg-background px-3.5 py-2.5 text-sm outline-none focus:border-primary disabled:opacity-60"
+    autocomplete="off"
+  />
+
+  @if (isOpen()) {
+    <div class="absolute z-10 mt-1.5 max-h-56 w-full overflow-y-auto rounded-lg border border-border bg-card shadow-[0_16px_32px_-12px_var(--shadow-color)]">
+      @if (loading()) {
+        <div class="px-3.5 py-2.5 text-sm text-muted-foreground">Loading…</div>
+      } @else if (visibleOptions().length === 0) {
+        <div class="px-3.5 py-2.5 text-sm text-muted-foreground">{{ emptyText() }}</div>
+      } @else {
+        @for (option of visibleOptions(); track option.value) {
+          <button
+            type="button"
+            (click)="choose(option)"
+            class="flex w-full flex-col items-start px-3.5 py-2 text-left text-sm hover:bg-muted"
+          >
+            <span class="font-medium">{{ option.label }}</span>
+            @if (option.sublabel) {
+              <span class="text-xs text-muted-foreground">{{ option.sublabel }}</span>
+            }
+          </button>
+        }
+      }
+    </div>
+  }
+</div>

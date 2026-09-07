@@ -1,18 +1,98 @@
 @import "tailwindcss";
+@import "@fontsource/newsreader/400.css";
+@import "@fontsource/newsreader/500.css";
+@import "@fontsource/newsreader/500-italic.css";
+@import "@fontsource/newsreader/600.css";
+@import "@fontsource/manrope/400.css";
+@import "@fontsource/manrope/500.css";
+@import "@fontsource/manrope/600.css";
+@import "@fontsource/manrope/700.css";
+
+:root {
+  --background: oklch(98.2% 0.006 85);
+  --foreground: oklch(21% 0.02 60);
+  --muted-foreground: oklch(48% 0.02 60);
+  --muted: oklch(95.5% 0.008 85);
+  --border: oklch(90% 0.01 80);
+  --card: oklch(100% 0 0);
+  --nav-background: oklch(98.2% 0.006 85 / 0.82);
+  --shadow-color: oklch(21% 0.02 60 / 0.16);
+
+  --primary: oklch(62% 0.15 55);
+  --primary-soft: oklch(80% 0.09 60);
+  --primary-shadow: oklch(62% 0.15 55 / 0.35);
+  --primary-foreground: oklch(99% 0 0);
+
+  --cta-background: oklch(21% 0.02 60);
+  --cta-foreground: oklch(98% 0.01 80);
+  --cta-muted: oklch(72% 0.02 70);
+
+  --destructive: #dc2626;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --background: oklch(19% 0.014 60);
+    --foreground: oklch(95% 0.01 80);
+    --muted-foreground: oklch(68% 0.02 70);
+    --muted: oklch(24% 0.015 60);
+    --border: oklch(30% 0.018 60);
+    --card: oklch(23% 0.015 60);
+    --nav-background: oklch(19% 0.014 60 / 0.82);
+    --shadow-color: oklch(0% 0 0 / 0.45);
+
+    --primary: oklch(72% 0.15 58);
+    --primary-soft: oklch(50% 0.1 58);
+    --primary-shadow: oklch(72% 0.15 58 / 0.3);
+    --primary-foreground: oklch(18% 0.02 60);
+
+    --cta-background: oklch(26% 0.02 58);
+    --cta-foreground: oklch(97% 0.01 80);
+    --cta-muted: oklch(75% 0.02 70);
+  }
+}
+
+:root[data-theme="dark"] {
+  --background: oklch(19% 0.014 60);
+  --foreground: oklch(95% 0.01 80);
+  --muted-foreground: oklch(68% 0.02 70);
+  --muted: oklch(24% 0.015 60);
+  --border: oklch(30% 0.018 60);
+  --card: oklch(23% 0.015 60);
+  --nav-background: oklch(19% 0.014 60 / 0.82);
+  --shadow-color: oklch(0% 0 0 / 0.45);
+
+  --primary: oklch(72% 0.15 58);
+  --primary-soft: oklch(50% 0.1 58);
+  --primary-shadow: oklch(72% 0.15 58 / 0.3);
+  --primary-foreground: oklch(18% 0.02 60);
+
+  --cta-background: oklch(26% 0.02 58);
+  --cta-foreground: oklch(97% 0.01 80);
+  --cta-muted: oklch(75% 0.02 70);
+}
 
 @theme {
-  --color-primary: #2563eb;
-  --color-primary-foreground: #ffffff;
-  --color-secondary: #7c3aed;
-  --color-destructive: #dc2626;
-  --color-muted: #f1f5f9;
-  --color-muted-foreground: #64748b;
-  --color-background: #ffffff;
-  --color-foreground: #0f172a;
-  --color-border: #e2e8f0;
-  --color-card: #ffffff;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-card: var(--card);
+  --color-nav: var(--nav-background);
 
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --color-primary: var(--primary);
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-cta: var(--cta-background);
+  --color-cta-foreground: var(--cta-foreground);
+  --color-cta-muted: var(--cta-muted);
+
+  --color-destructive: var(--destructive);
+
+  --font-serif: "Newsreader", ui-serif, Georgia, serif;
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
 }
 
 html,
@@ -25,4 +105,5 @@ body {
   font-family: var(--font-sans);
   background-color: var(--color-background);
   color: var(--color-foreground);
+  transition: background-color 0.2s ease, color 0.2s ease;
 }

@@ -231,8 +231,10 @@ backend isn't running on `http://localhost:5200`.
 
 ### What's built so far
 
-The home page (`pages/home/`) with AOS scroll animations, and the core architecture skeleton:
-`ApiClient` (matches the backend's `ApiResponse<T>`/`Paginated<T>` envelope exactly, uses
+The home page (`pages/home/`) with AOS scroll animations and light/dark theme support (toggle in
+the nav, `core/theme/theme.service.ts`, persisted per-browser, OKLCH color tokens so both themes
+share the same palette — see `docs/frontend-architecture.md` §10), and the core architecture
+skeleton: `ApiClient` (matches the backend's `ApiResponse<T>`/`Paginated<T>` envelope exactly, uses
 `withCredentials: true` — no token in `localStorage`, the cookie is `HttpOnly` on purpose, see
 `docs/frontend-architecture.md` §0), a signal-based `AuthService`, route guards, and TanStack
 Query wired into `app.config.ts`. `/login` and `/register` are route stubs — the actual auth UI

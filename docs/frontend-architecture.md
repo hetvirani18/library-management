@@ -515,18 +515,50 @@ framework renders the HTML:
   `clsx`/`tailwind-merge` combo
 
 Design tokens live in `src/styles.css`, using Tailwind v4's `@theme` directive (v4 doesn't need a
-separate `tailwind.config.js` for simple token definitions — CSS variables *are* the config):
+separate `tailwind.config.js` for simple token definitions — CSS variables *are* the config). One
+extra layer of indirection makes dark mode work: `@theme` doesn't hold literal values — it maps
+Tailwind's color names onto plain CSS custom properties, which are what actually get redefined per
+theme:
 
 ```css
 @import "tailwindcss";
 
+:root {
+  --background: oklch(98.2% 0.006 85);
+  --foreground: oklch(21% 0.02 60);
+  --primary: oklch(62% 0.15 55);
+  /* ...every token, light values */
+}
+
+:root[data-theme="dark"] {
+  --background: oklch(19% 0.014 60);
+  --foreground: oklch(95% 0.01 80);
+  --primary: oklch(72% 0.15 58);
+  /* ...same token names, dark values */
+}
+
 @theme {
-  --color-primary: #2563eb;
-  --color-muted-foreground: #64748b;
-  --color-border: #e2e8f0;
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  /* ... */
+  --font-serif: "Newsreader", ui-serif, Georgia, serif;
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
 }
 ```
+
+Colors are defined in **OKLCH**, not hex — same hue/chroma carried between the light and dark
+value of each token (only lightness shifts), so the two themes read as the same palette rather
+than an unrelated dark-mode reskin. A `@media (prefers-color-scheme: dark)` block (guarded with
+`:not([data-theme="light"])`) mirrors the dark values, so a first-time visitor who hasn't toggled
+anything still gets their OS preference honored — see `core/theme/theme.service.ts` for the
+signal-based service that flips `data-theme` and persists the choice to `localStorage` (a
+per-viewer UI preference, not sensitive data — unlike auth, this is exactly the kind of thing
+`localStorage` is fine for).
+
+**Fonts are self-hosted via `@fontsource/*` packages, not a Google Fonts `<link>`.** Same visual
+result, but the page doesn't depend on a third-party CDN being reachable at render time, and the
+font files ship in the app's own bundle.
 
 ---
 

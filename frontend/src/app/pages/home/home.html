@@ -1,15 +1,22 @@
 <main class="min-h-screen bg-background text-foreground">
   <!-- Nav -->
-  <header class="border-b border-border">
+  <header class="sticky top-0 z-10 border-b border-border bg-nav backdrop-blur">
     <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-      <span class="text-lg font-semibold">📖 LibraryWebApp</span>
-      <nav class="flex items-center gap-3">
-        <a routerLink="/login" class="text-sm font-medium text-muted-foreground hover:text-foreground">
+      <span class="flex items-center gap-2 font-serif text-xl font-semibold tracking-tight">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" class="text-primary">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        Ledger &amp; Leaf
+      </span>
+      <nav class="flex items-center gap-6">
+        <a routerLink="/login" class="hidden text-sm font-medium text-muted-foreground transition-colors hover:text-foreground sm:inline">
           Log in
         </a>
+        <app-theme-toggle />
         <a
           routerLink="/register"
-          class="inline-flex items-center justify-center rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:opacity-90"
+          class="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-transform hover:-translate-y-0.5"
         >
           Get started
         </a>
@@ -18,87 +25,115 @@
   </header>
 
   <!-- Hero -->
-  <section class="mx-auto max-w-6xl px-6 py-24 text-center">
-    <h1
-      data-aos="fade-up"
-      class="text-4xl font-bold tracking-tight sm:text-6xl"
-    >
-      Your library,
-      <span class="text-primary">organized</span>
-    </h1>
-    <p
-      data-aos="fade-up"
-      data-aos-delay="100"
-      class="mx-auto mt-6 max-w-xl text-lg text-muted-foreground"
-    >
-      Browse the catalog, track what you've borrowed, and let your librarian handle the rest —
-      all in one place.
-    </p>
-    <div
-      data-aos="fade-up"
-      data-aos-delay="200"
-      class="mt-10 flex items-center justify-center gap-4"
-    >
-      <a
-        routerLink="/register"
-        class="inline-flex items-center justify-center rounded-md bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:opacity-90"
-      >
-        Create an account
-      </a>
-      <a
-        routerLink="/login"
-        class="inline-flex items-center justify-center rounded-md border border-border px-6 py-3 text-sm font-medium transition-colors hover:bg-muted"
-      >
-        I already have one
-      </a>
+  <section class="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-6 py-20 sm:py-28 lg:grid-cols-[1.1fr_0.9fr]">
+    <div data-aos="fade-up">
+      <span class="mb-7 inline-flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground">
+        <span class="h-1.5 w-1.5 rounded-full bg-primary"></span>
+        Now tracking 4,200+ titles
+      </span>
+      <h1 class="max-w-lg font-serif text-5xl font-medium italic leading-[1.05] tracking-tight sm:text-6xl">
+        Your library, quietly organized.
+      </h1>
+      <p class="mt-7 max-w-md text-lg leading-relaxed text-muted-foreground">
+        Browse the catalog, see what you've borrowed and when it's due, and let your librarian
+        handle checkout — all in one calm, uncluttered place.
+      </p>
+      <div class="mt-10 flex flex-wrap items-center gap-4">
+        <a
+          routerLink="/register"
+          class="rounded-xl bg-primary px-6 py-3.5 text-sm font-semibold text-primary-foreground shadow-[0_8px_20px_-6px_var(--primary-shadow)] transition-transform hover:-translate-y-0.5"
+        >
+          Create an account
+        </a>
+        <a
+          routerLink="/login"
+          class="rounded-xl border border-border px-6 py-3.5 text-sm font-semibold transition-colors hover:bg-muted"
+        >
+          I already have one
+        </a>
+      </div>
+    </div>
+
+    <div data-aos="fade-up" data-aos-delay="150" class="relative">
+      <div class="rounded-[20px] border border-border bg-card p-7 shadow-[0_24px_60px_-24px_var(--shadow-color)]">
+        <div class="mb-5 flex items-center justify-between">
+          <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Currently borrowed</span>
+          <span class="rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">2 of 5</span>
+        </div>
+        <div class="flex flex-col gap-3">
+          <div class="flex items-center gap-3.5 rounded-xl bg-muted p-3.5">
+            <div class="h-[50px] w-[38px] shrink-0 rounded bg-gradient-to-br from-primary to-primary-soft"></div>
+            <div>
+              <div class="text-sm font-semibold">The Pragmatic Programmer</div>
+              <div class="mt-0.5 text-xs text-muted-foreground">Due in 6 days</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-3.5 rounded-xl bg-muted p-3.5">
+            <div class="h-[50px] w-[38px] shrink-0 rounded bg-gradient-to-br from-[#7c8f6f] to-[#a8b89a]"></div>
+            <div>
+              <div class="text-sm font-semibold">Clean Code</div>
+              <div class="mt-0.5 text-xs text-muted-foreground">Due in 11 days</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="absolute -bottom-5 -left-5 rounded-2xl bg-primary px-4.5 py-3.5 text-primary-foreground shadow-[0_16px_32px_-12px_var(--shadow-color)]">
+        <div class="text-2xl font-bold leading-none">0</div>
+        <div class="mt-0.5 text-xs opacity-85">overdue, ever</div>
+      </div>
     </div>
   </section>
 
   <!-- Features -->
-  <section class="mx-auto max-w-6xl px-6 py-20">
-    <h2 data-aos="fade-up" class="text-center text-3xl font-semibold">
-      Everything the library needs
-    </h2>
-    <div class="mt-14 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+  <section class="mx-auto max-w-6xl px-6 py-16 sm:py-20">
+    <div data-aos="fade-up" class="mb-14 max-w-lg">
+      <h2 class="font-serif text-3xl font-medium tracking-tight sm:text-4xl">
+        Everything the library needs
+      </h2>
+      <p class="mt-3.5 text-base leading-relaxed text-muted-foreground">
+        Built for two people: the member who just wants their next book, and the librarian who
+        keeps the whole shelf straight.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
       @for (feature of features; track feature.title; let i = $index) {
         <div
           data-aos="fade-up"
           [attr.data-aos-delay]="i * 100"
-          class="rounded-xl border border-border bg-card p-6 shadow-sm transition-transform hover:-translate-y-1"
+          class="rounded-2xl border border-border bg-card p-7 transition-all hover:-translate-y-1 hover:border-primary"
         >
-          <div class="text-3xl">{{ feature.icon }}</div>
-          <h3 class="mt-4 font-semibold">{{ feature.title }}</h3>
-          <p class="mt-2 text-sm text-muted-foreground">{{ feature.description }}</p>
+          <div class="mb-4.5 text-primary" [innerHTML]="feature.icon"></div>
+          <h3 class="text-base font-semibold">{{ feature.title }}</h3>
+          <p class="mt-2 text-sm leading-relaxed text-muted-foreground">{{ feature.description }}</p>
         </div>
       }
     </div>
   </section>
 
   <!-- CTA -->
-  <section class="border-t border-border">
-    <div
-      data-aos="zoom-in"
-      class="mx-auto max-w-3xl px-6 py-20 text-center"
-    >
-      <h2 class="text-3xl font-semibold">Ready to check something out?</h2>
-      <p class="mt-4 text-muted-foreground">
+  <section class="mx-auto max-w-6xl px-6 pb-20 sm:pb-24">
+    <div data-aos="zoom-in" class="rounded-3xl bg-cta px-8 py-16 text-center text-cta-foreground sm:py-20">
+      <h2 class="font-serif text-3xl font-medium italic tracking-tight sm:text-4xl">
+        Ready to check something out?
+      </h2>
+      <p class="mx-auto mt-4 max-w-md text-base text-cta-muted">
         Create an account to start browsing, or log in if you're already a member.
       </p>
-      <div class="mt-8">
-        <a
-          routerLink="/register"
-          class="inline-flex items-center justify-center rounded-md bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:opacity-90"
-        >
-          Get started — it's free
-        </a>
-      </div>
+      <a
+        routerLink="/register"
+        class="mt-8 inline-block rounded-xl bg-primary px-7 py-3.5 text-sm font-semibold text-primary-foreground transition-transform hover:-translate-y-0.5"
+      >
+        Get started — it's free
+      </a>
     </div>
   </section>
 
   <!-- Footer -->
-  <footer class="border-t border-border py-8">
-    <p class="text-center text-sm text-muted-foreground">
-      Built with ASP.NET Core &amp; Angular.
-    </p>
+  <footer class="border-t border-border">
+    <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-8">
+      <span class="font-serif text-sm font-semibold">Ledger &amp; Leaf</span>
+      <span class="text-xs text-muted-foreground">Built with ASP.NET Core &amp; Angular.</span>
+    </div>
   </footer>
 </main>
